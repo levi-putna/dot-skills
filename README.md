@@ -1,0 +1,166 @@
+# dot-skills
+
+One `.skills/` folder as the source of truth for agent skills — linked out to
+every coding agent that reads them.
+
+```sh
+npx dot-skills init
+```
+
+## The idea
+
+[Anthropic's `SKILL.md` format](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview)
+is now an open standard read natively by Claude Code, Cursor, GitHub
+Copilot, Windsurf, OpenAI Codex CLI, and Gemini CLI. The problem isn't
+format conversion anymore — it's that each agent looks for skills in a
+different folder:
+
+| Agent | Project skills dir | Global (personal) skills dir |
+|---|---|---|
+| Claude Code | `.claude/skills/` | `~/.claude/skills/` |
+| Cursor | `.cursor/skills/` | `~/.cursor/skills/` |
+| GitHub Copilot | `.github/skills/` | `~/.copilot/skills/` |
+| Windsurf (Cascade) | `.windsurf/skills/` | `~/.codeium/windsurf/skills/` |
+| OpenAI Codex CLI | `.codex/skills/` | `~/.codex/skills/` |
+| Gemini CLI | `.gemini/skills/` | `~/.gemini/skills/` |
+
+`dot-skills` keeps exactly one real copy of each skill in `.skills/` at your
+project root, and symlinks it into whichever of the folders above you
+actually use. Edit the skill once, in one place; every agent sees the
+update immediately. On filesystems without symlink support (e.g. Windows
+without developer mode), it falls back to copying and re-copies on
+`dot-skills link`.
+
+A `.skills/` folder is also how `dot-skills` recognizes a *source* of
+skills — any public GitHub repo with a `.skills/<name>/SKILL.md` in it can
+be pulled from with `dot-skills add owner/repo`, including this repo
+itself.
+
+## Quick start
+
+```sh
+# In a project — creates .skills/, links into whichever agents you pick
+npx dot-skills init
+
+# Install a skill from any repo with a .skills/ folder
+npx dot-skills add levi-putna/dot-skills/creating-skills
+
+# See what's available in a repo before installing
+npx dot-skills list owner/repo
+
+# See what's installed here, which agents it's linked to, and dependency status
+npx dot-skills installed
+
+# Check declared dependencies (env vars / CLI tools) for everything installed
+npx dot-skills doctor
+```
+
+The first time `dot-skills` runs on a machine (any command, not just
+`init`), it also installs two starter skills into `~/.dot-skills/skills/`
+and links them into whichever agents it finds already configured on your
+machine — see [Starter skills](#starter-skills-installed-on-first-run)
+below.
+
+## Commands
+
+| Command | Does |
+|---|---|
+| `dot-skills init` | Create `.skills/` in the current project (if missing), install the two starter skills, link into chosen agents |
+| `dot-skills add <owner/repo>[/skill][#ref]` | Install one or more skills from a repo's `.skills/` folder |
+| `dot-skills list [owner/repo]` | List skills + descriptions in a repo, or (no args) in the local `.skills/` |
+| `dot-skills installed` | Show installed skills: source, linked agents, dependency status |
+| `dot-skills link [skill...]` | (Re)create symlinks for skills already in `.skills/` — e.g. after adding a new agent to the project |
+| `dot-skills remove <skill>` | Delete a skill from `.skills/` and unlink it from every agent it was linked into |
+| `dot-skills doctor` | Check every installed skill's declared dependencies against the current environment |
+
+Every command accepts `--global` to operate on `~/.dot-skills/skills/` and
+each agent's global directory instead of the current project.
+
+Non-interactive flags (for scripts/CI, and used automatically when stdin
+isn't a TTY): `--agents=claude,cursor`, `--all`, and (for `add`)
+`--skills=a,b`.
+
+## Skill format
+
+A skill is a folder under `.skills/`:
+
+```
+.skills/
+  my-skill/
+    SKILL.md          # required — frontmatter + instructions
+    README.md          # optional — human-facing docs
+    references/         # optional — long-form docs loaded only when needed
+    scripts/             # optional — helper scripts
+    assets/               # optional — templates/files used in output
+```
+
+`SKILL.md` frontmatter:
+
+```yaml
+---
+name: my-skill
+description: >-
+  What it does, and when an agent should reach for it. This is the only
+  thing most agents see before deciding whether to load the skill, so be
+  concrete about trigger phrases.
+dependencies:
+  - type: env
+    name: OPENAI_API_KEY
+    required: true
+    description: Needed to call the OpenAI API.
+    instructions: >-
+      Create a key at https://platform.openai.com/api-keys, then
+      export OPENAI_API_KEY=sk-... in your shell profile.
+  - type: cli
+    name: jq
+    required: false
+    instructions: Install via `brew install jq`.
+---
+
+Markdown instructions for the agent go here.
+```
+
+`dependencies` is optional. Each entry is `type: env` (an environment
+variable) or `type: cli` (a command that must be on `PATH`), with
+`required` (default `true`), a human-readable `description`, and
+`instructions` for how to satisfy it. `dot-skills add`/`init`/`link` print
+these as a setup notice right after installing, and `dot-skills doctor`
+re-checks `env` dependencies against the current shell at any time (`cli`
+dependencies are reported but can't be auto-verified).
+
+## Starter skills (installed on first run)
+
+Two meta-skills ship with `dot-skills` itself and get installed
+automatically — into `.skills/` on `init`, and globally to
+`~/.dot-skills/skills/` the very first time `dot-skills` runs on a machine:
+
+- **`creating-skills`** — how to author a new skill: naming, the
+  frontmatter schema above, writing a description that actually triggers,
+  and linking it out once it's written. Point an agent at this whenever
+  someone asks it to "make this a skill" or "add a skill for X."
+- **`importing-skills`** — how to migrate something that already exists in
+  agent-native form (a legacy `.cursorrules` or `.cursor/rules/*.mdc`, a
+  `.clinerules`, `.windsurfrules`, `.github/copilot-instructions.md`, a
+  section of `AGENTS.md`/`CLAUDE.md`, or a `SKILL.md` sitting untracked in
+  one agent's own skills folder) into a canonical `.skills/<name>/`. Point
+  an agent at this whenever someone asks it to import, migrate, or convert
+  existing rules into `dot-skills` format.
+
+Both are themselves ordinary skills — read them at
+[`.skills/creating-skills/SKILL.md`](.skills/creating-skills/SKILL.md) and
+[`.skills/importing-skills/SKILL.md`](.skills/importing-skills/SKILL.md).
+
+## Publishing your own skills
+
+Any public GitHub repo with `.skills/<name>/SKILL.md` folders at its root
+works as an installable source — there's no registry to publish to or
+register with:
+
+```sh
+npx dot-skills add your-name/your-skills-repo
+npx dot-skills list your-name/your-skills-repo
+```
+
+## License
+
+MIT
