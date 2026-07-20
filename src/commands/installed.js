@@ -4,6 +4,7 @@ import { resolveScope } from '../lib/scope.js'
 import { getAgent } from '../lib/agents.js'
 import { parseSkillMd } from '../lib/frontmatter.js'
 import { checkDependencies } from '../lib/installer.js'
+import { bold, cyan, dim, green, red, wrap } from '../lib/format.js'
 
 export function installed({ global: isGlobal } = {}) {
   const scope = resolveScope({ global: isGlobal })
@@ -15,26 +16,35 @@ export function installed({ global: isGlobal } = {}) {
     return
   }
 
+  console.log()
   for (const name of names) {
     const entry = lock.skills[name]
     const skillMdPath = join(scope.skillsDir, name, 'SKILL.md')
-    let description = '(missing from .skills/ — lockfile is stale)'
-    let dependencyLines = []
+    let description = null
+    let dependencies = []
     if (existsSync(skillMdPath)) {
       const { data } = parseSkillMd(readFileSync(skillMdPath, 'utf8'))
       description = data.description || '(no description)'
-      dependencyLines = checkDependencies(data).map((dep) => {
-        const status = dep.satisfied === undefined ? 'unknown' : dep.satisfied ? 'ok' : 'MISSING'
-        return `    - [${status}] ${dep.type}: ${dep.name}`
-      })
+      dependencies = checkDependencies(data)
     }
 
-    console.log(`\n${name}  (source: ${entry.source}${entry.branch ? `@${entry.branch}` : ''})`)
-    console.log(`  ${description}`)
-    console.log(`  linked into: ${entry.linkedAgents.map((k) => getAgent(k).name).join(', ') || '(none)'}`)
-    if (dependencyLines.length) {
-      console.log('  dependencies:')
-      for (const line of dependencyLines) console.log(line)
+    const source = `${entry.source}${entry.branch ? `@${entry.branch}` : ''}`
+    console.log(`  ${bold(cyan(name))}  ${dim(`(${source})`)}`)
+    console.log(
+      description
+        ? wrap(description, { indent: 4 })
+        : `    ${red('missing from .skills/ — lockfile is stale, try `dot-skills remove ' + name + '`')}`,
+    )
+    console.log(dim(`    linked into: ${entry.linkedAgents.map((k) => getAgent(k).name).join(', ') || '(none)'}`))
+
+    if (dependencies.length) {
+      console.log(dim('    dependencies:'))
+      for (const dep of dependencies) {
+        const status =
+          dep.satisfied === undefined ? dim('unknown') : dep.satisfied ? green('ok') : red('MISSING')
+        console.log(`      [${status}] ${dep.type}: ${dep.name}`)
+      }
     }
+    console.log()
   }
 }

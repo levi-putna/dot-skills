@@ -80,6 +80,11 @@ Non-interactive flags (for scripts/CI, and used automatically when stdin
 isn't a TTY): `--agents=claude,cursor`, `--all`, and (for `add`)
 `--skills=a,b`.
 
+`list`, `installed`, and `doctor` word-wrap descriptions to the terminal
+width (capped at a readable ~88 columns) and color-highlight names and
+status. Color is automatically disabled when output isn't a terminal
+(piped to a file or another command) or when `NO_COLOR` is set.
+
 ## Skill format
 
 A skill is a folder under `.skills/`:

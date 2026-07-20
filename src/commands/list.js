@@ -4,6 +4,7 @@ import * as clack from '@clack/prompts'
 import { parseRepoSpec, listSkillNames, fetchRawText } from '../lib/github.js'
 import { parseSkillMd } from '../lib/frontmatter.js'
 import { resolveScope } from '../lib/scope.js'
+import { formatSkillEntry, formatHeader, dim } from '../lib/format.js'
 
 export async function list(spec, { global: isGlobal } = {}) {
   if (spec) {
@@ -33,17 +34,18 @@ async function listRemote(spec) {
     return
   }
 
-  for (const name of names) {
-    let description = ''
-    try {
-      const content = await fetchRawText({ ...parsed, ref: branch, path: `.skills/${name}/SKILL.md` })
-      description = parseSkillMd(content).data.description || ''
-    } catch {
-      description = '(could not read description)'
-    }
-    console.log(`\n${name}`)
-    console.log(`  ${description}`)
-  }
+  const descriptions = await Promise.all(
+    names.map(async (name) => {
+      try {
+        const content = await fetchRawText({ ...parsed, ref: branch, path: `.skills/${name}/SKILL.md` })
+        return parseSkillMd(content).data.description || ''
+      } catch {
+        return '(could not read description)'
+      }
+    }),
+  )
+
+  printEntries(formatHeader(`${parsed.owner}/${parsed.repo}@${branch}`), names, descriptions)
 }
 
 function listLocal({ global: isGlobal }) {
@@ -67,14 +69,21 @@ function listLocal({ global: isGlobal }) {
     return
   }
 
-  for (const name of names) {
+  const descriptions = names.map((name) => {
     const skillMdPath = join(skillsDir, name, 'SKILL.md')
-    let description = '(no SKILL.md found)'
-    if (existsSync(skillMdPath)) {
-      const { data } = parseSkillMd(readFileSync(skillMdPath, 'utf8'))
-      description = data.description || '(no description)'
-    }
-    console.log(`\n${name}`)
-    console.log(`  ${description}`)
+    if (!existsSync(skillMdPath)) return '(no SKILL.md found)'
+    const { data } = parseSkillMd(readFileSync(skillMdPath, 'utf8'))
+    return data.description || '(no description)'
+  })
+
+  printEntries(formatHeader(isGlobal ? '~/.dot-skills/skills' : skillsDir), names, descriptions)
+}
+
+function printEntries(headerText, names, descriptions) {
+  const count = `${names.length} skill${names.length === 1 ? '' : 's'}`
+  console.log(`\n${headerText}  ${dim(`(${count})`)}\n`)
+  for (let i = 0; i < names.length; i++) {
+    console.log(formatSkillEntry(names[i], descriptions[i]))
+    console.log()
   }
 }

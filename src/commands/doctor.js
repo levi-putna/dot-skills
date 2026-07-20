@@ -3,6 +3,7 @@ import { join } from 'path'
 import { resolveScope } from '../lib/scope.js'
 import { parseSkillMd } from '../lib/frontmatter.js'
 import { checkDependencies } from '../lib/installer.js'
+import { bold, cyan, green, red, yellow } from '../lib/format.js'
 
 export function doctor({ global: isGlobal } = {}) {
   const scope = resolveScope({ global: isGlobal })
@@ -29,8 +30,9 @@ export function doctor({ global: isGlobal } = {}) {
       if (dep.satisfied === false) {
         const required = dep.required !== false
         if (required) missingRequired++
+        const tag = required ? red('required') : yellow('optional')
         console.log(
-          `${name}: [${required ? 'required' : 'optional'}] ${dep.type} "${dep.name}" is not set` +
+          `${bold(cyan(name))}: [${tag}] ${dep.type} "${dep.name}" is not set` +
             (dep.instructions ? ` -> ${dep.instructions}` : ''),
         )
       }
@@ -38,9 +40,9 @@ export function doctor({ global: isGlobal } = {}) {
   }
 
   if (missingRequired) {
-    console.log(`\n${missingRequired} required dependenc${missingRequired === 1 ? 'y' : 'ies'} missing.`)
+    console.log(`\n${red(`${missingRequired} required dependenc${missingRequired === 1 ? 'y' : 'ies'} missing.`)}`)
     process.exitCode = 1
   } else {
-    console.log('\nAll required dependencies satisfied (CLI-tool dependencies cannot be auto-checked).')
+    console.log(`\n${green('All required dependencies satisfied')} (CLI-tool dependencies cannot be auto-checked).`)
   }
 }
