@@ -47,7 +47,6 @@ export async function link(skillNames, { global: isGlobal, agents: explicitAgent
       source: existing.source,
       branch: existing.branch,
       linkedAgents: [...new Set([...(existing.linkedAgents || []), ...agentKeys])],
-      dependencies: existing.dependencies,
     })
     clack.log.success(`Linked ${name} -> ${agentKeys.map((k) => getAgent(k).name).join(', ') || '(nothing selected)'}`)
   }

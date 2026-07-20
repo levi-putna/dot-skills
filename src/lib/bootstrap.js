@@ -3,7 +3,6 @@ import { join } from 'path'
 import { canonicalGlobalSkillsDir, detectGlobalAgents, getAgent } from './agents.js'
 import { writeSkillFiles, linkSkill } from './installer.js'
 import { readGlobalLockfile, writeGlobalLockfile, recordSkill } from './lockfile.js'
-import { parseSkillMd } from './frontmatter.js'
 import { BUNDLED_SKILLS_DIR, BUNDLED_META_SKILLS } from './paths.js'
 
 // Runs once ever, the first time `dot-skills` is invoked on a machine:
@@ -25,7 +24,6 @@ export function ensureFirstRunBootstrap() {
       content: readFileSync(join(srcDir, f), 'utf8'),
     }))
     const targetDir = writeSkillFiles(globalSkillsDir, skillName, files)
-    const { data } = parseSkillMd(readFileSync(join(targetDir, 'SKILL.md'), 'utf8'))
 
     for (const key of agentKeys) {
       linkSkill(targetDir, getAgent(key).globalSkillsDir(), skillName)
@@ -35,7 +33,6 @@ export function ensureFirstRunBootstrap() {
       source: 'bundled',
       branch: null,
       linkedAgents: agentKeys,
-      dependencies: data.dependencies || [],
     })
   }
 

@@ -115,7 +115,6 @@ export async function add(spec, { global: isGlobal, agents: explicitAgents, all,
       source: `${parsed.owner}/${parsed.repo}`,
       branch: ref,
       linkedAgents: agentKeys,
-      dependencies: data.dependencies || [],
     })
 
     const notice = formatDependencyNotice(skillName, data)

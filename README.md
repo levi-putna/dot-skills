@@ -150,6 +150,31 @@ Both are themselves ordinary skills — read them at
 [`.skills/creating-skills/SKILL.md`](.skills/creating-skills/SKILL.md) and
 [`.skills/importing-skills/SKILL.md`](.skills/importing-skills/SKILL.md).
 
+## Also available from this repo
+
+Beyond the two starter skills, this repo's `.skills/` folder ships three
+more you can install the same way any other repo's skills install —
+they're opt-in, not auto-installed by `init`:
+
+```sh
+npx dot-skills add levi-putna/dot-skills/reviewing-code
+npx dot-skills add levi-putna/dot-skills/checking-release-readiness
+npx dot-skills add levi-putna/dot-skills/preparing-a-release
+```
+
+- **`reviewing-code`** — reviews a diff, PR, or set of files for
+  correctness and security bugs. Reports findings and asks how you want
+  each one handled; never edits code unilaterally.
+- **`checking-release-readiness`** — audits code and documentation for
+  drift: claims in the README that no longer match what the code does,
+  broken internal links, undocumented flags.
+- **`preparing-a-release`** — runs the two skills above, proposes a
+  semver bump based on what actually changed, updates
+  [`CHANGELOG.md`](CHANGELOG.md), verifies git is committed and pushed,
+  and hands back the exact `npm publish` command (it never runs
+  `npm publish` itself — that always needs a human-provided,
+  time-sensitive OTP).
+
 ## Publishing your own skills
 
 Any public GitHub repo with `.skills/<name>/SKILL.md` folders at its root

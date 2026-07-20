@@ -36,13 +36,13 @@ test('recordSkill adds a skill entry with timestamps', () => {
     source: 'owner/repo',
     branch: 'main',
     linkedAgents: ['claude'],
-    dependencies: [],
   })
   assert.equal(lock.skills['my-skill'].source, 'owner/repo')
   assert.equal(lock.skills['my-skill'].branch, 'main')
   assert.deepEqual(lock.skills['my-skill'].linkedAgents, ['claude'])
   assert.ok(lock.skills['my-skill'].installedAt)
   assert.ok(lock.skills['my-skill'].updatedAt)
+  assert.equal(lock.skills['my-skill'].dependencies, undefined)
 })
 
 test('recordSkill preserves original installedAt on update', () => {

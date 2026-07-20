@@ -4,7 +4,6 @@ import * as clack from '@clack/prompts'
 import { canonicalSkillsDir, getAgent } from '../lib/agents.js'
 import { writeSkillFiles, linkSkill } from '../lib/installer.js'
 import { readLockfile, writeLockfile, recordSkill } from '../lib/lockfile.js'
-import { parseSkillMd } from '../lib/frontmatter.js'
 import { BUNDLED_SKILLS_DIR, BUNDLED_META_SKILLS } from '../lib/paths.js'
 import { pickAgents } from '../lib/interactive.js'
 
@@ -39,7 +38,6 @@ export async function init({ agents: explicit, all } = {}) {
       clack.log.info(`Added bundled skill "${skillName}" to .skills/`)
     }
 
-    const { data } = parseSkillMd(readFileSync(join(targetDir, 'SKILL.md'), 'utf8'))
     const linkedAgents = []
     for (const key of agentKeys) {
       const agent = getAgent(key)
@@ -50,7 +48,6 @@ export async function init({ agents: explicit, all } = {}) {
       source: 'bundled',
       branch: null,
       linkedAgents,
-      dependencies: data.dependencies || [],
     })
   }
 
