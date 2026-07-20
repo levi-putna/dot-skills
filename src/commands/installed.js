@@ -4,7 +4,7 @@ import { resolveScope } from '../lib/scope.js'
 import { getAgent } from '../lib/agents.js'
 import { parseSkillMd } from '../lib/frontmatter.js'
 import { checkDependencies } from '../lib/installer.js'
-import { bold, cyan, dim, green, red, wrap } from '../lib/format.js'
+import { bold, blue, dim, green, red, wrap } from '../lib/format.js'
 
 export function installed({ global: isGlobal } = {}) {
   const scope = resolveScope({ global: isGlobal })
@@ -29,7 +29,7 @@ export function installed({ global: isGlobal } = {}) {
     }
 
     const source = `${entry.source}${entry.branch ? `@${entry.branch}` : ''}`
-    console.log(`  ${bold(cyan(name))}  ${dim(`(${source})`)}`)
+    console.log(`  ${bold(blue(name))}  ${dim(`(${source})`)}`)
     console.log(
       description
         ? wrap(description, { indent: 4 })

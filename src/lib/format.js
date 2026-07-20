@@ -10,6 +10,7 @@ function style(open, close) {
 
 export const bold = style(1, 22)
 export const dim = style(2, 22)
+export const blue = style(94, 39) // bright blue — plain blue (34) reads too dark on most default terminal themes
 export const cyan = style(36, 39)
 export const green = style(32, 39)
 export const yellow = style(33, 39)
@@ -41,7 +42,7 @@ export function wrap(text, { indent = 4, maxWidth = 88 } = {}) {
 
 // One skill entry: bold/colored name, dimmed word-wrapped description.
 export function formatSkillEntry(name, description) {
-  const heading = `  ${bold(cyan(name))}`
+  const heading = `  ${bold(blue(name))}`
   const body = wrap(description || '(no description)', { indent: 4 })
   return `${heading}\n${dim(body)}`
 }
