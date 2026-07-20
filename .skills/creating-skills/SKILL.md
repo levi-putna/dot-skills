@@ -99,10 +99,11 @@ directly means your edits vanish or drift from the source of truth.
    npx dot-skills link
    ```
 
-   This symlinks `.skills/<skill-name>/` into every coding-agent directory
-   detected in the project (or asks which agents to link into, if none are
-   detected yet). If the skill declares dependencies, `dot-skills` prints
-   the setup notice at this point too — read it back to the user.
+   This re-links every skill currently in `.skills/` (including the new
+   one) into whichever agents you pick — it prompts interactively,
+   pre-selecting any it detects in the project. If the skill declares
+   dependencies, `dot-skills` prints the setup notice at this point too —
+   read it back to the user.
 
 6. **Commit `.skills/`.** The per-agent directories it's linked into may or
    may not be gitignored depending on the project's conventions — check

@@ -15,7 +15,7 @@ Usage:
   dot-skills init                          Set up .skills/ in this project, link into detected agents
   dot-skills add <owner/repo>[/skill][#ref] [--global]
                                             Install skill(s) from a repo's .skills/ folder
-  dot-skills list [owner/repo]             List skills in a repo (or, with no args, in ./.skills/)
+  dot-skills list [owner/repo] [--global]  List skills in a repo (or, with no args, in ./.skills/)
   dot-skills installed [--global]          Show installed skills, their agents, and dependency status
   dot-skills link [skill...] [--global]    (Re)link skills into agent directories
   dot-skills remove <skill> [--global]     Remove a skill and unlink it everywhere
@@ -39,14 +39,12 @@ async function main() {
     return
   }
 
-  if (command !== 'init') {
-    const bootstrap = ensureFirstRunBootstrap()
-    if (bootstrap) {
-      console.log(
-        `First run: installed starter skills ("creating-skills", "importing-skills") to ${bootstrap.globalSkillsDir}` +
-          (bootstrap.linkedAgents.length ? ` and linked into ${bootstrap.linkedAgents.join(', ')}.` : '.'),
-      )
-    }
+  const bootstrap = ensureFirstRunBootstrap()
+  if (bootstrap) {
+    console.log(
+      `First run: installed starter skills ("creating-skills", "importing-skills") to ${bootstrap.globalSkillsDir}` +
+        (bootstrap.linkedAgents.length ? ` and linked into ${bootstrap.linkedAgents.join(', ')}.` : '.'),
+    )
   }
 
   const { positional, flags } = parseArgs(rest)
@@ -63,7 +61,7 @@ async function main() {
       await add(positional[0], { global: isGlobal, agents, all, skills })
       break
     case 'list':
-      await list(positional[0])
+      await list(positional[0], { global: isGlobal })
       break
     case 'installed':
       installed({ global: isGlobal })

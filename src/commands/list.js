@@ -3,13 +3,13 @@ import { join } from 'path'
 import * as clack from '@clack/prompts'
 import { parseRepoSpec, listSkillNames, fetchRawText } from '../lib/github.js'
 import { parseSkillMd } from '../lib/frontmatter.js'
-import { canonicalSkillsDir } from '../lib/agents.js'
+import { resolveScope } from '../lib/scope.js'
 
-export async function list(spec) {
+export async function list(spec, { global: isGlobal } = {}) {
   if (spec) {
     await listRemote(spec)
   } else {
-    listLocal(process.cwd())
+    listLocal({ global: isGlobal })
   }
 }
 
@@ -46,10 +46,15 @@ async function listRemote(spec) {
   }
 }
 
-function listLocal(cwd) {
-  const skillsDir = canonicalSkillsDir(cwd)
+function listLocal({ global: isGlobal }) {
+  const scope = resolveScope({ global: isGlobal })
+  const skillsDir = scope.skillsDir
   if (!existsSync(skillsDir)) {
-    console.log('No .skills/ directory here. Run `dot-skills init` first, or `dot-skills list <owner/repo>`.')
+    console.log(
+      isGlobal
+        ? 'No skills installed globally yet.'
+        : 'No .skills/ directory here. Run `dot-skills init` first, or `dot-skills list <owner/repo>`.',
+    )
     return
   }
   const names = readdirSync(skillsDir, { withFileTypes: true })
@@ -58,7 +63,7 @@ function listLocal(cwd) {
     .sort()
 
   if (!names.length) {
-    console.log('.skills/ is empty. Run `dot-skills add <owner/repo>` to install one.')
+    console.log(`.skills/ is empty. Run \`dot-skills add <owner/repo>${isGlobal ? ' --global' : ''}\` to install one.`)
     return
   }
 

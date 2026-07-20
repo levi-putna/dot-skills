@@ -87,11 +87,11 @@ A skill is a folder under `.skills/`:
 ```
 .skills/
   my-skill/
-    SKILL.md          # required — frontmatter + instructions
-    README.md          # optional — human-facing docs
-    references/         # optional — long-form docs loaded only when needed
-    scripts/             # optional — helper scripts
-    assets/               # optional — templates/files used in output
+    SKILL.md      # required — frontmatter + instructions
+    README.md      # optional — human-facing docs
+    references/    # optional — long-form docs loaded only when needed
+    scripts/       # optional — helper scripts
+    assets/        # optional — templates/files used in output
 ```
 
 `SKILL.md` frontmatter:
