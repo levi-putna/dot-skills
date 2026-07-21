@@ -40,13 +40,24 @@ export function wrap(text, { indent = 4, maxWidth = 88 } = {}) {
   return lines.map((l) => pad + l).join('\n')
 }
 
+// "by <author> · <repo>", omitting whichever half is missing, or null if
+// neither is present.
+export function formatAttribution(author, repo) {
+  if (!author && !repo) return null
+  return [author ? `by ${author}` : null, repo].filter(Boolean).join(' · ')
+}
+
 // One skill entry: bold/colored name (with an optional "already installed"
-// tag), dimmed word-wrapped description.
-export function formatSkillEntry(name, description, { installed } = {}) {
+// tag), an optional dimmed attribution line, then dimmed word-wrapped
+// description.
+export function formatSkillEntry(name, description, { installed, author, repo } = {}) {
   const tag = installed ? `  ${green('(already installed)')}` : ''
   const heading = `  ${bold(blue(name))}${tag}`
-  const body = wrap(description || '(no description)', { indent: 4 })
-  return `${heading}\n${dim(body)}`
+  const attribution = formatAttribution(author, repo)
+  const lines = [heading]
+  if (attribution) lines.push(dim(`    ${attribution}`))
+  lines.push(dim(wrap(description || '(no description)', { indent: 4 })))
+  return lines.join('\n')
 }
 
 export function formatHeader(text) {

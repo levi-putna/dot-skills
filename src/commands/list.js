@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import * as clack from '@clack/prompts'
 import { parseRepoSpec, listSkillNames, fetchRawText } from '../lib/github.js'
-import { parseSkillMd, getId } from '../lib/frontmatter.js'
+import { parseSkillMd, getId, getAuthor, getRepo } from '../lib/frontmatter.js'
 import { resolveScope } from '../lib/scope.js'
 import { canonicalSkillsDir, canonicalGlobalSkillsDir } from '../lib/agents.js'
 import { getBundledMetaSkillIds } from '../lib/paths.js'
@@ -41,7 +41,13 @@ async function listRemote(spec) {
       try {
         const content = await fetchRawText({ ...parsed, ref: branch, path: `.skills/${name}/SKILL.md` })
         const { data } = parseSkillMd(content)
-        return { name, description: data.description || '', id: getId(data) }
+        return {
+          name,
+          description: data.description || '',
+          id: getId(data),
+          author: getAuthor(data),
+          repo: getRepo(data),
+        }
       } catch {
         return { name, description: '(could not read description)', id: undefined }
       }
@@ -95,7 +101,7 @@ function listLocal({ global: isGlobal }) {
     const skillMdPath = join(skillsDir, name, 'SKILL.md')
     if (!existsSync(skillMdPath)) return { name, description: '(no SKILL.md found)' }
     const { data } = parseSkillMd(readFileSync(skillMdPath, 'utf8'))
-    return { name, description: data.description || '(no description)' }
+    return { name, description: data.description || '(no description)', author: getAuthor(data), repo: getRepo(data) }
   })
 
   printEntries(formatHeader(isGlobal ? '~/.dot-skills/skills' : skillsDir), entries)
@@ -126,7 +132,13 @@ function printEntries(headerText, entries, { omitted = 0 } = {}) {
   const omittedNote = omitted ? `, ${omitted} starter skill${omitted === 1 ? '' : 's'} omitted` : ''
   console.log(`\n${headerText}  ${dim(`(${count}${omittedNote})`)}\n`)
   for (const entry of entries) {
-    console.log(formatSkillEntry(entry.name, entry.description, { installed: entry.installed }))
+    console.log(
+      formatSkillEntry(entry.name, entry.description, {
+        installed: entry.installed,
+        author: entry.author,
+        repo: entry.repo,
+      }),
+    )
     console.log()
   }
 }

@@ -33,6 +33,12 @@ export function validateSkillData(data, { source = 'SKILL.md' } = {}) {
   if (data.id !== undefined && (typeof data.id !== 'string' || !UUID_RE.test(data.id))) {
     errors.push(`${source}: "id" must be a UUID (e.g. generated with crypto.randomUUID())`)
   }
+  if (data.author !== undefined && typeof data.author !== 'string') {
+    errors.push(`${source}: "author" must be a string`)
+  }
+  if (data.repo !== undefined && (typeof data.repo !== 'string' || !/^https?:\/\//.test(data.repo))) {
+    errors.push(`${source}: "repo" must be a URL (e.g. https://github.com/owner/repo)`)
+  }
   if (data.dependencies !== undefined && !Array.isArray(data.dependencies)) {
     errors.push(`${source}: "dependencies" must be an array`)
   }
@@ -53,4 +59,12 @@ export function getDependencies(data) {
 
 export function getId(data) {
   return typeof data.id === 'string' ? data.id : undefined
+}
+
+export function getAuthor(data) {
+  return typeof data.author === 'string' ? data.author : undefined
+}
+
+export function getRepo(data) {
+  return typeof data.repo === 'string' ? data.repo : undefined
 }

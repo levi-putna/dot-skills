@@ -1,6 +1,8 @@
 ---
 name: importing-skills
 id: 7233a916-ec70-432d-bb6e-ca0c5b91b974
+author: Levi Putna
+repo: https://github.com/levi-putna/dot-skills
 description: >-
   Guide for migrating an existing agent-native rule, instruction file, or
   skill into the canonical .skills/ format used by dot-skills. Use when the

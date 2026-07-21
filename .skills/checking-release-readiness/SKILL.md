@@ -1,6 +1,8 @@
 ---
 name: checking-release-readiness
 id: 7c6ec2da-59e5-4832-abf4-a8c477b47f84
+author: Levi Putna
+repo: https://github.com/levi-putna/dot-skills
 description: >-
   Audit whether code and documentation are consistent, current, and ready
   to ship. Cross-checks every claim in the README/docs against the actual

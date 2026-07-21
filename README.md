@@ -109,6 +109,8 @@ A skill is a folder under `.skills/`:
 ---
 name: my-skill
 id: 56824965-a4de-4b74-bf8d-5d04b598de77
+author: Your Name
+repo: https://github.com/your-name/your-skills-repo
 description: >-
   What it does, and when an agent should reach for it. This is the only
   thing most agents see before deciding whether to load the skill, so be
@@ -138,6 +140,13 @@ you already have installed, and to recognize the two starter skills
 regardless of what a particular copy got renamed to (see below). It's
 optional but recommended; skills without one just don't get either
 benefit.
+
+`author` and `repo` are both optional plain-text attribution: who wrote
+the skill, and a link back to where its canonical, maintained source
+lives. Both are shown by `list`/`installed` when present, and travel with
+the file itself — unlike the per-install provenance already tracked in
+the lockfile (which repo *you* installed a copy from), these stay attached
+even if the raw `SKILL.md` gets copied around by hand.
 
 `dependencies` is optional. Each entry is `type: env` (an environment
 variable) or `type: cli` (a command that must be on `PATH`), with

@@ -1,6 +1,8 @@
 ---
 name: creating-skills
 id: e6d0cf52-9004-4575-b260-d5cd8874b8b1
+author: Levi Putna
+repo: https://github.com/levi-putna/dot-skills
 description: >-
   Guide for authoring a new dot-skills-compatible skill. Use when the user
   asks to create a new skill, write a SKILL.md, add a reusable
@@ -61,6 +63,22 @@ directly means your edits vanish or drift from the source of truth.
    `dot-skills` treat it as a different skill for "already installed"
    comparisons). If you're editing an *existing* skill rather than
    creating a new one, leave its `id` untouched.
+
+   Also add `author` and `repo` — optional, but include them unless the
+   user says otherwise:
+
+   ```yaml
+   author: Levi Putna
+   repo: https://github.com/levi-putna/dot-skills
+   ```
+
+   `author` is a plain name or handle. `repo` is a link back to the
+   repository this skill's source lives in — not necessarily where a user
+   installed it *from* (that provenance is already tracked separately, per
+   install, in the lockfile), but where to find the canonical, maintained
+   copy. Both travel with the file itself, so they stay attached even if
+   someone copies the raw `SKILL.md` around by hand instead of using
+   `dot-skills add`.
 
    If the skill has setup requirements the user must handle themselves
    (an API key, an environment variable, a CLI tool that must be installed),

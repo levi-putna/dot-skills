@@ -2,9 +2,9 @@ import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { resolveScope } from '../lib/scope.js'
 import { getAgent } from '../lib/agents.js'
-import { parseSkillMd } from '../lib/frontmatter.js'
+import { parseSkillMd, getAuthor, getRepo } from '../lib/frontmatter.js'
 import { checkDependencies } from '../lib/installer.js'
-import { bold, blue, dim, green, red, wrap } from '../lib/format.js'
+import { bold, blue, dim, green, red, wrap, formatAttribution } from '../lib/format.js'
 
 export function installed({ global: isGlobal } = {}) {
   const scope = resolveScope({ global: isGlobal })
@@ -22,14 +22,19 @@ export function installed({ global: isGlobal } = {}) {
     const skillMdPath = join(scope.skillsDir, name, 'SKILL.md')
     let description = null
     let dependencies = []
+    let author, repo
     if (existsSync(skillMdPath)) {
       const { data } = parseSkillMd(readFileSync(skillMdPath, 'utf8'))
       description = data.description || '(no description)'
       dependencies = checkDependencies(data)
+      author = getAuthor(data)
+      repo = getRepo(data)
     }
 
     const source = `${entry.source}${entry.branch ? `@${entry.branch}` : ''}`
     console.log(`  ${bold(blue(name))}  ${dim(`(${source})`)}`)
+    const attribution = formatAttribution(author, repo)
+    if (attribution) console.log(dim(`    ${attribution}`))
     console.log(
       description
         ? wrap(description, { indent: 4 })

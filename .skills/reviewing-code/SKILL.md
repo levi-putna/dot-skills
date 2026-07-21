@@ -1,6 +1,8 @@
 ---
 name: reviewing-code
 id: 56824965-a4de-4b74-bf8d-5d04b598de77
+author: Levi Putna
+repo: https://github.com/levi-putna/dot-skills
 description: >-
   Review code changes (uncommitted work, a branch diff, a PR, or named
   files) for correctness bugs, security issues, and reliability problems.
