@@ -13,9 +13,9 @@ description: >-
 # Creating skills
 
 This project uses [dot-skills](https://github.com/levi-putna/dot-skills) as
-its single source of truth for agent skills. Every skill — regardless of
+its single source of truth for agent skills. Every skill, regardless of
 which coding agent will eventually use it (Claude Code, Cursor, GitHub
-Copilot, Windsurf, Codex CLI, Gemini CLI) — lives in exactly one place:
+Copilot, Windsurf, Codex CLI, Gemini CLI), lives in exactly one place:
 
 ```
 .skills/<skill-name>/SKILL.md
@@ -23,7 +23,7 @@ Copilot, Windsurf, Codex CLI, Gemini CLI) — lives in exactly one place:
 
 **Never** create a skill directly inside `.claude/skills/`,
 `.cursor/skills/`, `.github/skills/`, `.windsurf/skills/`, `.codex/skills/`,
-or `.gemini/skills/`. Those directories are managed by `dot-skills` — each
+or `.gemini/skills/`. Those directories are managed by `dot-skills`; each
 skill folder inside them is a symlink (or, on filesystems without symlink
 support, a copy) back to `.skills/<skill-name>/`. Editing the linked copy
 directly means your edits vanish or drift from the source of truth.
@@ -49,13 +49,13 @@ directly means your edits vanish or drift from the source of truth.
    id: <a freshly generated UUID>
    description: >-
      One to three sentences. State what the skill does AND when an agent
-     should reach for it — the description is the only thing most agents
+     should reach for it. The description is the only thing most agents
      see before deciding to load the full skill, so triggering words and
      concrete trigger phrases matter more than prose quality.
    ---
    ```
 
-   Generate the `id` once, when the skill is first created — it's the
+   Generate the `id` once, when the skill is first created. It's the
    skill's stable identity, independent of its name or which repo it gets
    copied into. Generate it with `node -e "console.log(crypto.randomUUID())"`
    (or `uuidgen`), and never reuse one across two different skills, and
@@ -64,7 +64,7 @@ directly means your edits vanish or drift from the source of truth.
    comparisons). If you're editing an *existing* skill rather than
    creating a new one, leave its `id` untouched.
 
-   Also add `author` and `repo` — optional, but include them unless the
+   Also add `author` and `repo`, optional but include them unless the
    user says otherwise:
 
    ```yaml
@@ -73,7 +73,7 @@ directly means your edits vanish or drift from the source of truth.
    ```
 
    `author` is a plain name or handle. `repo` is a link back to the
-   repository this skill's source lives in — not necessarily where a user
+   repository this skill's source lives in, not necessarily where a user
    installed it *from* (that provenance is already tracked separately, per
    install, in the lockfile), but where to find the canonical, maintained
    copy. Both travel with the file itself, so they stay attached even if
@@ -102,13 +102,13 @@ directly means your edits vanish or drift from the source of truth.
 
    `type` is `env` (an environment variable) or `cli` (a command that must
    be on `PATH`). Mark `required: false` for nice-to-haves. Never invent a
-   dependency the skill doesn't actually need — every entry here becomes a
+   dependency the skill doesn't actually need; every entry here becomes a
    real notice shown to a real person.
 
 4. **Write the body.** Plain markdown instructions aimed at the agent that
    will read this skill, not at a human reader of documentation. Be
    specific and procedural: steps, decision points, examples, things to
-   avoid. Keep it focused on one capability — if you're describing three
+   avoid. Keep it focused on one capability: if you're describing three
    unrelated procedures, that's three skills.
 
    For anything bulky (long reference material, scripts, templates), add
@@ -129,14 +129,14 @@ directly means your edits vanish or drift from the source of truth.
    ```
 
    This re-links every skill currently in `.skills/` (including the new
-   one) into whichever agents you pick — it prompts interactively,
+   one) into whichever agents you pick. It prompts interactively,
    pre-selecting any it detects in the project. If the skill declares
-   dependencies, `dot-skills` prints the setup notice at this point too —
+   dependencies, `dot-skills` prints the setup notice at this point too;
    read it back to the user.
 
 6. **Commit `.skills/`.** The per-agent directories it's linked into may or
-   may not be gitignored depending on the project's conventions — check
-   before assuming either way — but `.skills/` itself is always the
+   may not be gitignored depending on the project's conventions (check
+   before assuming either way), but `.skills/` itself is always the
    canonical, version-controlled copy.
 
 ## Writing a good description
@@ -151,4 +151,4 @@ AI-generated."` Name the triggering phrases a user would actually type.
 
 Skills are for procedures worth reusing across sessions or projects. A
 one-off instruction that only applies to the current message doesn't need
-to become a skill — just do the task.
+to become a skill. Just do the task.

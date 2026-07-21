@@ -12,7 +12,7 @@ uses [Semantic Versioning](https://semver.org/).
   project's `.skills/`; it now resolves project vs. global scope like
   every other command.
 - The first-run global bootstrap was skipped specifically when the
-  invoked command was `init` — the opposite of the documented behavior
+  invoked command was `init`, the opposite of the documented behavior
   ("any command, not just `init`"). It now always runs before dispatch.
 
 ## [0.1.0] - 2026-07-21

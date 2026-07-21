@@ -28,7 +28,7 @@ Check for (and ask the user if unsure which applies):
 
 | Source | Typical location | Format |
 |---|---|---|
-| Claude Code | `.claude/skills/<name>/SKILL.md` (not already a symlink into `.skills/`) | Already SKILL.md — mostly a move |
+| Claude Code | `.claude/skills/<name>/SKILL.md` (not already a symlink into `.skills/`) | Already SKILL.md, mostly a move |
 | Cursor (modern) | `.cursor/rules/*.mdc`, `.cursor/skills/<name>/SKILL.md` | `.mdc` has YAML frontmatter (`description`, `globs`, `alwaysApply`) + body |
 | Cursor (legacy) | `.cursorrules` at repo root | Plain text/markdown, no frontmatter |
 | GitHub Copilot | `.github/copilot-instructions.md`, `*.instructions.md`, `.github/skills/<name>/SKILL.md` | Markdown, sometimes with path-scoping frontmatter |
@@ -37,13 +37,13 @@ Check for (and ask the user if unsure which applies):
 | Codex CLI / Gemini CLI | `.codex/skills/<name>/SKILL.md`, `.gemini/skills/<name>/SKILL.md` | Already SKILL.md |
 | Cross-agent | `AGENTS.md`, `CLAUDE.md` | Markdown, may contain multiple unrelated instructions mixed together |
 
-A single source file may contain several unrelated concerns — split it into
+A single source file may contain several unrelated concerns. Split it into
 one skill per coherent capability rather than importing it verbatim as one
 giant skill.
 
 ## Steps
 
-1. **Read the source file(s) in full.** Don't skim — instructions that look
+1. **Read the source file(s) in full.** Don't skim: instructions that look
    like boilerplate often encode a real project convention.
 
 2. **Identify the distinct capability (or capabilities).** For each one,
@@ -55,11 +55,11 @@ giant skill.
    tooling or environment variables without saying so explicitly (e.g. "run
    the linter" implies a CLI must be installed, "call the API" may imply an
    API key). Surface these as a `dependencies:` list in the new
-   frontmatter — see `creating-skills` for the schema — rather than leaving
+   frontmatter (see `creating-skills` for the schema) rather than leaving
    them buried in prose.
 
 4. **Write `.skills/<name>/SKILL.md`** with proper frontmatter and a body
-   rewritten as clear procedural instructions — not a copy-paste of the
+   rewritten as clear procedural instructions, not a copy-paste of the
    original file's format-specific cruft (drop `.mdc` fields like `globs`
    or `alwaysApply`; those are Cursor-specific activation hints, not
    content).
@@ -67,7 +67,7 @@ giant skill.
 5. **Reconcile the original file:**
    - If it was a native `SKILL.md` already sitting in one agent's directory
      (e.g. `.claude/skills/foo/SKILL.md`) and nothing else references it,
-     delete it — `dot-skills link` will recreate it as a symlink pointing
+     delete it: `dot-skills link` will recreate it as a symlink pointing
      at `.skills/foo/`.
    - If it was a legacy format (`.cursorrules`, `.clinerules`,
      `.windsurfrules`, `.mdc` file) that the agent still reads directly,
@@ -76,7 +76,7 @@ giant skill.
      the team fully migrates, then plan its removal.
    - If it was one section inside a larger shared file (`AGENTS.md`,
      `CLAUDE.md`, `copilot-instructions.md`), remove just that section once
-     it's been extracted — leave the rest of the file untouched.
+     it's been extracted. Leave the rest of the file untouched.
 
 6. **Link it out:**
 
@@ -84,7 +84,7 @@ giant skill.
    npx dot-skills link
    ```
 
-7. **Tell the user what changed** — which file(s) were consumed, what the
+7. **Tell the user what changed**: which file(s) were consumed, what the
    new skill is named, and whether any legacy file still needs manual
    cleanup.
 
@@ -92,7 +92,7 @@ giant skill.
 
 - Don't blindly import formatting directives that only make sense in the
   source agent (Cursor's `globs`/`alwaysApply`, Copilot's path-scoped
-  `applyTo`) as if they were universal — note them in the SKILL.md body as
+  `applyTo`) as if they were universal. Note them in the SKILL.md body as
   prose if they matter, since not every agent supports scoped activation.
 - Don't merge multiple unrelated conventions into one skill just because
   they lived in the same source file.

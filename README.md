@@ -1,6 +1,6 @@
 # dot-skills
 
-One `.skills/` folder as the source of truth for agent skills — linked out to
+One `.skills/` folder as the source of truth for agent skills, linked out to
 every coding agent that reads them.
 
 ```sh
@@ -12,7 +12,7 @@ npx dot-skills init
 [Anthropic's `SKILL.md` format](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/overview)
 is now an open standard read natively by Claude Code, Cursor, GitHub
 Copilot, Windsurf, OpenAI Codex CLI, and Gemini CLI. The problem isn't
-format conversion anymore — it's that each agent looks for skills in a
+format conversion anymore. It's that each agent looks for skills in a
 different folder:
 
 | Agent | Project skills dir | Global (personal) skills dir |
@@ -32,14 +32,14 @@ without developer mode), it falls back to copying and re-copies on
 `dot-skills link`.
 
 A `.skills/` folder is also how `dot-skills` recognizes a *source* of
-skills — any public GitHub repo with a `.skills/<name>/SKILL.md` in it can
+skills: any public GitHub repo with a `.skills/<name>/SKILL.md` in it can
 be pulled from with `dot-skills add owner/repo`, including this repo
 itself.
 
 ## Quick start
 
 ```sh
-# In a project — creates .skills/, links into whichever agents you pick
+# In a project: creates .skills/, links into whichever agents you pick
 npx dot-skills init
 
 # Install a skill from any repo with a .skills/ folder
@@ -58,7 +58,7 @@ npx dot-skills doctor
 The first time `dot-skills` runs on a machine (any command, not just
 `init`), it also installs two starter skills into `~/.dot-skills/skills/`
 and links them into whichever agents it finds already configured on your
-machine — see [Starter skills](#starter-skills-installed-on-first-run)
+machine. See [Starter skills](#starter-skills-installed-on-first-run)
 below.
 
 ## Commands
@@ -69,7 +69,7 @@ below.
 | `dot-skills add <owner/repo>[/skill][#ref]` | Install one or more skills from a repo's `.skills/` folder |
 | `dot-skills list [owner/repo]` | List skills + descriptions in a repo, or (no args) in the local `.skills/` |
 | `dot-skills installed` | Show installed skills: source, linked agents, dependency status |
-| `dot-skills link [skill...]` | (Re)create symlinks for skills already in `.skills/` — e.g. after adding a new agent to the project |
+| `dot-skills link [skill...]` | (Re)create symlinks for skills already in `.skills/`, e.g. after adding a new agent to the project |
 | `dot-skills remove <skill>` | Delete a skill from `.skills/` and unlink it from every agent it was linked into |
 | `dot-skills doctor` | Check every installed skill's declared dependencies against the current environment |
 
@@ -96,11 +96,11 @@ A skill is a folder under `.skills/`:
 ```
 .skills/
   my-skill/
-    SKILL.md      # required — frontmatter + instructions
-    README.md      # optional — human-facing docs
-    references/    # optional — long-form docs loaded only when needed
-    scripts/       # optional — helper scripts
-    assets/        # optional — templates/files used in output
+    SKILL.md      # required: frontmatter + instructions
+    README.md      # optional: human-facing docs
+    references/    # optional: long-form docs loaded only when needed
+    scripts/       # optional: helper scripts
+    assets/        # optional: templates/files used in output
 ```
 
 `SKILL.md` frontmatter:
@@ -133,8 +133,8 @@ Markdown instructions for the agent go here.
 ```
 
 `id` is a UUID, generated once when the skill is first created (e.g. with
-`node -e "console.log(crypto.randomUUID())"`) and never changed afterward
-— it's the skill's stable identity, independent of its name or which repo
+`node -e "console.log(crypto.randomUUID())"`) and never changed afterward.
+It's the skill's stable identity, independent of its name or which repo
 a copy ends up in. `dot-skills list <owner/repo>` uses it to mark entries
 you already have installed, and to recognize the two starter skills
 regardless of what a particular copy got renamed to (see below). It's
@@ -144,7 +144,7 @@ benefit.
 `author` and `repo` are both optional plain-text attribution: who wrote
 the skill, and a link back to where its canonical, maintained source
 lives. Both are shown by `list`/`installed` when present, and travel with
-the file itself — unlike the per-install provenance already tracked in
+the file itself. Unlike the per-install provenance already tracked in
 the lockfile (which repo *you* installed a copy from), these stay attached
 even if the raw `SKILL.md` gets copied around by hand.
 
@@ -159,14 +159,14 @@ dependencies are reported but can't be auto-verified).
 ## Starter skills (installed on first run)
 
 Two meta-skills ship with `dot-skills` itself and get installed
-automatically — into `.skills/` on `init`, and globally to
+automatically: into `.skills/` on `init`, and globally to
 `~/.dot-skills/skills/` the very first time `dot-skills` runs on a machine:
 
-- **`creating-skills`** — how to author a new skill: naming, the
+- **`creating-skills`**: how to author a new skill: naming, the
   frontmatter schema above, writing a description that actually triggers,
   and linking it out once it's written. Point an agent at this whenever
   someone asks it to "make this a skill" or "add a skill for X."
-- **`importing-skills`** — how to migrate something that already exists in
+- **`importing-skills`**: how to migrate something that already exists in
   agent-native form (a legacy `.cursorrules` or `.cursor/rules/*.mdc`, a
   `.clinerules`, `.windsurfrules`, `.github/copilot-instructions.md`, a
   section of `AGENTS.md`/`CLAUDE.md`, or a `SKILL.md` sitting untracked in
@@ -174,13 +174,13 @@ automatically — into `.skills/` on `init`, and globally to
   an agent at this whenever someone asks it to import, migrate, or convert
   existing rules into `dot-skills` format.
 
-Both are themselves ordinary skills — read them at
+Both are themselves ordinary skills. Read them at
 [`.skills/creating-skills/SKILL.md`](.skills/creating-skills/SKILL.md) and
 [`.skills/importing-skills/SKILL.md`](.skills/importing-skills/SKILL.md).
 
 Because `init` copies these two into every consuming project's own
-`.skills/`, practically any dot-skills-enabled repo ends up carrying a copy
-— so `dot-skills list <owner/repo>` deliberately never shows them, no
+`.skills/`, practically any dot-skills-enabled repo ends up carrying a copy,
+so `dot-skills list <owner/repo>` deliberately never shows them, no
 matter whose repo you point it at (matched by their fixed `id`, so a
 renamed copy is still recognized). They're still installable by name if
 you ever need to recover one: `dot-skills add <owner/repo>/creating-skills`.
@@ -188,8 +188,8 @@ you ever need to recover one: `dot-skills add <owner/repo>/creating-skills`.
 ## Also available from this repo
 
 Beyond the two starter skills, this repo's `.skills/` folder ships three
-more you can install the same way any other repo's skills install —
-they're opt-in, not auto-installed by `init`:
+more you can install the same way any other repo's skills install; they're
+opt-in, not auto-installed by `init`:
 
 ```sh
 npx dot-skills add levi-putna/dot-skills/reviewing-code
@@ -197,23 +197,23 @@ npx dot-skills add levi-putna/dot-skills/checking-release-readiness
 npx dot-skills add levi-putna/dot-skills/preparing-a-release
 ```
 
-- **`reviewing-code`** — reviews a diff, PR, or set of files for
+- **`reviewing-code`**: reviews a diff, PR, or set of files for
   correctness and security bugs. Reports findings and asks how you want
   each one handled; never edits code unilaterally.
-- **`checking-release-readiness`** — audits code and documentation for
+- **`checking-release-readiness`**: audits code and documentation for
   drift: claims in the README that no longer match what the code does,
   broken internal links, undocumented flags.
-- **`preparing-a-release`** — runs the two skills above, proposes a
+- **`preparing-a-release`**: runs the two skills above, proposes a
   semver bump based on what actually changed, updates
   [`CHANGELOG.md`](CHANGELOG.md), verifies git is committed and pushed,
   and hands back the exact `npm publish` command (it never runs
-  `npm publish` itself — that always needs a human-provided,
+  `npm publish` itself, since that always needs a human-provided,
   time-sensitive OTP).
 
 ## Publishing your own skills
 
 Any public GitHub repo with `.skills/<name>/SKILL.md` folders at its root
-works as an installable source — there's no registry to publish to or
+works as an installable source; there's no registry to publish to or
 register with:
 
 ```sh

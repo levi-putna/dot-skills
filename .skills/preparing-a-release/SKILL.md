@@ -37,19 +37,19 @@ one step that actually needs a human: `npm publish`.
 ## 1. Run the two check skills first
 
 Run `reviewing-code` against everything changed since the last published
-version (not just uncommitted changes — diff against the last release
+version (not just uncommitted changes; diff against the last release
 tag, or against the version currently on npm if there's no tag). Run
 `checking-release-readiness` the same way.
 
 **Do not proceed past this point if either skill has findings the user
 hasn't dispositioned yet.** A release prepared over unresolved findings is
-worse than a slower release — surface them and wait.
+worse than a slower release. Surface them and wait.
 
 ## 2. Establish what's actually changed
 
 - Read the version in `package.json`.
 - Run `npm view <package-name> version` to get what's actually published.
-- If they already match, nothing has shipped since the last bump — say so
+- If they already match, nothing has shipped since the last bump. Say so
   and ask whether the user wants to proceed anyway (there may be
   unpublished-but-committed changes worth releasing) rather than assuming.
 - Otherwise, diff `git log <last-release-tag-or-commit>..HEAD` to see
@@ -59,12 +59,12 @@ worse than a slower release — surface them and wait.
 
 Use semver, and favor the higher tier when a change is ambiguous:
 
-- **MAJOR** — removed or renamed a command/flag, changed a file format,
+- **MAJOR**: removed or renamed a command/flag, changed a file format,
   changed default/documented behavior in a way that breaks existing
   usage.
-- **MINOR** — new, backward-compatible functionality: a new command, a
+- **MINOR**: new, backward-compatible functionality: a new command, a
   new flag, a new skill added to `.skills/`.
-- **PATCH** — bug fixes, documentation fixes, internal refactors with no
+- **PATCH**: bug fixes, documentation fixes, internal refactors with no
   user-visible behavior change.
 
 State which tier you picked and why, propose the exact new version
@@ -75,7 +75,7 @@ silently bump.
 
 Once confirmed, add a new dated entry at the top (below the header),
 following the file's existing [Keep a Changelog](https://keepachangelog.com/)
-style — categorized under `Added` / `Changed` / `Fixed` / `Removed` as
+style, categorized under `Added` / `Changed` / `Fixed` / `Removed` as
 appropriate. Summarize from the actual diff and commit messages, not
 generic boilerplate ("various improvements" is not an entry).
 
@@ -88,7 +88,7 @@ publish).
 
 ## 6. Verify the repo is actually shippable
 
-- `git status` must be clean — no uncommitted changes. If there are any
+- `git status` must be clean: no uncommitted changes. If there are any
   (including the changelog/version bump you just made), tell the user
   what needs committing; don't commit on their behalf without asking.
 - The current branch must be pushed with nothing left ahead of or behind
@@ -96,7 +96,7 @@ publish).
   origin/<branch>...<branch>`). If anything is unpushed, say so and ask
   before pushing.
 
-## 7. Hand back the publish command — don't run it
+## 7. Hand back the publish command, don't run it
 
 Once everything above is clean, give the user the exact command:
 
