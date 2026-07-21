@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseSkillMd, stringifySkillMd, validateSkillData, getDependencies } from './frontmatter.js'
+import { parseSkillMd, stringifySkillMd, validateSkillData, getDependencies, getId } from './frontmatter.js'
 
 test('parseSkillMd extracts frontmatter and body', () => {
   const content = `---\nname: my-skill\ndescription: does a thing\n---\n\n# Body\n\nHello.\n`
@@ -67,4 +67,20 @@ test('validateSkillData passes for a well-formed skill', () => {
     dependencies: [{ type: 'env', name: 'FOO' }],
   })
   assert.deepEqual(errors, [])
+})
+
+test('validateSkillData accepts a well-formed UUID id', () => {
+  const errors = validateSkillData({ name: 'x', description: 'y', id: '56824965-a4de-4b74-bf8d-5d04b598de77' })
+  assert.deepEqual(errors, [])
+})
+
+test('validateSkillData flags a malformed id', () => {
+  const errors = validateSkillData({ name: 'x', description: 'y', id: 'not-a-uuid' })
+  assert.ok(errors.some((e) => e.includes('id')))
+})
+
+test('getId returns the id when present and a string', () => {
+  assert.equal(getId({ id: '56824965-a4de-4b74-bf8d-5d04b598de77' }), '56824965-a4de-4b74-bf8d-5d04b598de77')
+  assert.equal(getId({}), undefined)
+  assert.equal(getId({ id: 123 }), undefined)
 })

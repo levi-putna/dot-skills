@@ -85,6 +85,10 @@ width (capped at a readable ~88 columns) and color-highlight names and
 status. Color is automatically disabled when output isn't a terminal
 (piped to a file or another command) or when `NO_COLOR` is set.
 
+`dot-skills list <owner/repo>` also marks entries you already have
+installed (project-local or global) with `(already installed)`, matched by
+`id` where available and falling back to name.
+
 ## Skill format
 
 A skill is a folder under `.skills/`:
@@ -104,6 +108,7 @@ A skill is a folder under `.skills/`:
 ```yaml
 ---
 name: my-skill
+id: 56824965-a4de-4b74-bf8d-5d04b598de77
 description: >-
   What it does, and when an agent should reach for it. This is the only
   thing most agents see before deciding whether to load the skill, so be
@@ -124,6 +129,15 @@ dependencies:
 
 Markdown instructions for the agent go here.
 ```
+
+`id` is a UUID, generated once when the skill is first created (e.g. with
+`node -e "console.log(crypto.randomUUID())"`) and never changed afterward
+— it's the skill's stable identity, independent of its name or which repo
+a copy ends up in. `dot-skills list <owner/repo>` uses it to mark entries
+you already have installed, and to recognize the two starter skills
+regardless of what a particular copy got renamed to (see below). It's
+optional but recommended; skills without one just don't get either
+benefit.
 
 `dependencies` is optional. Each entry is `type: env` (an environment
 variable) or `type: cli` (a command that must be on `PATH`), with
@@ -154,6 +168,13 @@ automatically — into `.skills/` on `init`, and globally to
 Both are themselves ordinary skills — read them at
 [`.skills/creating-skills/SKILL.md`](.skills/creating-skills/SKILL.md) and
 [`.skills/importing-skills/SKILL.md`](.skills/importing-skills/SKILL.md).
+
+Because `init` copies these two into every consuming project's own
+`.skills/`, practically any dot-skills-enabled repo ends up carrying a copy
+— so `dot-skills list <owner/repo>` deliberately never shows them, no
+matter whose repo you point it at (matched by their fixed `id`, so a
+renamed copy is still recognized). They're still installable by name if
+you ever need to recover one: `dot-skills add <owner/repo>/creating-skills`.
 
 ## Also available from this repo
 

@@ -2,8 +2,10 @@ import { existsSync, readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import * as clack from '@clack/prompts'
 import { parseRepoSpec, listSkillNames, fetchRawText } from '../lib/github.js'
-import { parseSkillMd } from '../lib/frontmatter.js'
+import { parseSkillMd, getId } from '../lib/frontmatter.js'
 import { resolveScope } from '../lib/scope.js'
+import { canonicalSkillsDir, canonicalGlobalSkillsDir } from '../lib/agents.js'
+import { getBundledMetaSkillIds } from '../lib/paths.js'
 import { formatSkillEntry, formatHeader, dim } from '../lib/format.js'
 
 export async function list(spec, { global: isGlobal } = {}) {
@@ -34,18 +36,38 @@ async function listRemote(spec) {
     return
   }
 
-  const descriptions = await Promise.all(
+  const fetched = await Promise.all(
     names.map(async (name) => {
       try {
         const content = await fetchRawText({ ...parsed, ref: branch, path: `.skills/${name}/SKILL.md` })
-        return parseSkillMd(content).data.description || ''
+        const { data } = parseSkillMd(content)
+        return { name, description: data.description || '', id: getId(data) }
       } catch {
-        return '(could not read description)'
+        return { name, description: '(could not read description)', id: undefined }
       }
     }),
   )
 
-  printEntries(formatHeader(`${parsed.owner}/${parsed.repo}@${branch}`), names, descriptions)
+  // The two starter skills (creating-skills, importing-skills) get copied
+  // into every project's own .skills/ by `init` — listing them again for
+  // every repo that happens to carry a copy would just be noise. Matched
+  // by id, not name, so this still holds even if a copy gets renamed.
+  const metaIds = new Set(getBundledMetaSkillIds())
+  const visible = fetched.filter((entry) => !(entry.id && metaIds.has(entry.id)))
+  const omitted = fetched.length - visible.length
+
+  if (!visible.length) {
+    console.log('Only starter skills here, already installed automatically by `dot-skills init` — nothing else to list.')
+    return
+  }
+
+  const local = collectLocalIdentities()
+  const entries = visible.map((entry) => ({
+    ...entry,
+    installed: (entry.id && local.ids.has(entry.id)) || local.names.has(entry.name),
+  }))
+
+  printEntries(formatHeader(`${parsed.owner}/${parsed.repo}@${branch}`), entries, { omitted })
 }
 
 function listLocal({ global: isGlobal }) {
@@ -69,21 +91,42 @@ function listLocal({ global: isGlobal }) {
     return
   }
 
-  const descriptions = names.map((name) => {
+  const entries = names.map((name) => {
     const skillMdPath = join(skillsDir, name, 'SKILL.md')
-    if (!existsSync(skillMdPath)) return '(no SKILL.md found)'
+    if (!existsSync(skillMdPath)) return { name, description: '(no SKILL.md found)' }
     const { data } = parseSkillMd(readFileSync(skillMdPath, 'utf8'))
-    return data.description || '(no description)'
+    return { name, description: data.description || '(no description)' }
   })
 
-  printEntries(formatHeader(isGlobal ? '~/.dot-skills/skills' : skillsDir), names, descriptions)
+  printEntries(formatHeader(isGlobal ? '~/.dot-skills/skills' : skillsDir), entries)
 }
 
-function printEntries(headerText, names, descriptions) {
-  const count = `${names.length} skill${names.length === 1 ? '' : 's'}`
-  console.log(`\n${headerText}  ${dim(`(${count})`)}\n`)
-  for (let i = 0; i < names.length; i++) {
-    console.log(formatSkillEntry(names[i], descriptions[i]))
+// Every skill (by id, and by name as a fallback for skills with no id)
+// currently installed in either the project-local or global .skills/ —
+// used to mark remote listing entries the user already has.
+function collectLocalIdentities() {
+  const ids = new Set()
+  const names = new Set()
+  for (const dir of [canonicalSkillsDir(process.cwd()), canonicalGlobalSkillsDir()]) {
+    if (!existsSync(dir)) continue
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) continue
+      names.add(entry.name)
+      const skillMdPath = join(dir, entry.name, 'SKILL.md')
+      if (!existsSync(skillMdPath)) continue
+      const id = getId(parseSkillMd(readFileSync(skillMdPath, 'utf8')).data)
+      if (id) ids.add(id)
+    }
+  }
+  return { ids, names }
+}
+
+function printEntries(headerText, entries, { omitted = 0 } = {}) {
+  const count = `${entries.length} skill${entries.length === 1 ? '' : 's'}`
+  const omittedNote = omitted ? `, ${omitted} starter skill${omitted === 1 ? '' : 's'} omitted` : ''
+  console.log(`\n${headerText}  ${dim(`(${count}${omittedNote})`)}\n`)
+  for (const entry of entries) {
+    console.log(formatSkillEntry(entry.name, entry.description, { installed: entry.installed }))
     console.log()
   }
 }

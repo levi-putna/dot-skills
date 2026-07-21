@@ -40,9 +40,11 @@ export function wrap(text, { indent = 4, maxWidth = 88 } = {}) {
   return lines.map((l) => pad + l).join('\n')
 }
 
-// One skill entry: bold/colored name, dimmed word-wrapped description.
-export function formatSkillEntry(name, description) {
-  const heading = `  ${bold(blue(name))}`
+// One skill entry: bold/colored name (with an optional "already installed"
+// tag), dimmed word-wrapped description.
+export function formatSkillEntry(name, description, { installed } = {}) {
+  const tag = installed ? `  ${green('(already installed)')}` : ''
+  const heading = `  ${bold(blue(name))}${tag}`
   const body = wrap(description || '(no description)', { indent: 4 })
   return `${heading}\n${dim(body)}`
 }

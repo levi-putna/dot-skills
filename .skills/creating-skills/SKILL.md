@@ -1,5 +1,6 @@
 ---
 name: creating-skills
+id: e6d0cf52-9004-4575-b260-d5cd8874b8b1
 description: >-
   Guide for authoring a new dot-skills-compatible skill. Use when the user
   asks to create a new skill, write a SKILL.md, add a reusable
@@ -43,6 +44,7 @@ directly means your edits vanish or drift from the source of truth.
    ```yaml
    ---
    name: skill-name
+   id: <a freshly generated UUID>
    description: >-
      One to three sentences. State what the skill does AND when an agent
      should reach for it — the description is the only thing most agents
@@ -50,6 +52,15 @@ directly means your edits vanish or drift from the source of truth.
      concrete trigger phrases matter more than prose quality.
    ---
    ```
+
+   Generate the `id` once, when the skill is first created — it's the
+   skill's stable identity, independent of its name or which repo it gets
+   copied into. Generate it with `node -e "console.log(crypto.randomUUID())"`
+   (or `uuidgen`), and never reuse one across two different skills, and
+   never regenerate it for the same skill later (that would make
+   `dot-skills` treat it as a different skill for "already installed"
+   comparisons). If you're editing an *existing* skill rather than
+   creating a new one, leave its `id` untouched.
 
    If the skill has setup requirements the user must handle themselves
    (an API key, an environment variable, a CLI tool that must be installed),

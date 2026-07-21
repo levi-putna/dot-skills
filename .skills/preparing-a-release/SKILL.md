@@ -1,5 +1,6 @@
 ---
 name: preparing-a-release
+id: 188580c9-304e-4bbf-8bf5-764535982d40
 description: >-
   Run a full pre-release check before cutting a new version: invokes
   reviewing-code and checking-release-readiness, determines the right

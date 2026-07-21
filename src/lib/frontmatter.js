@@ -1,6 +1,7 @@
 import yaml from 'js-yaml'
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 // Parse a SKILL.md file's contents into { data, body }.
 // `data` is the YAML frontmatter (name, description, dependencies[], ...).
@@ -29,6 +30,9 @@ export function validateSkillData(data, { source = 'SKILL.md' } = {}) {
   if (!data.description || typeof data.description !== 'string') {
     errors.push(`${source}: missing required "description" field`)
   }
+  if (data.id !== undefined && (typeof data.id !== 'string' || !UUID_RE.test(data.id))) {
+    errors.push(`${source}: "id" must be a UUID (e.g. generated with crypto.randomUUID())`)
+  }
   if (data.dependencies !== undefined && !Array.isArray(data.dependencies)) {
     errors.push(`${source}: "dependencies" must be an array`)
   }
@@ -45,4 +49,8 @@ export function validateSkillData(data, { source = 'SKILL.md' } = {}) {
 
 export function getDependencies(data) {
   return Array.isArray(data.dependencies) ? data.dependencies : []
+}
+
+export function getId(data) {
+  return typeof data.id === 'string' ? data.id : undefined
 }
