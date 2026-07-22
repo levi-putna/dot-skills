@@ -64,21 +64,28 @@ directly means your edits vanish or drift from the source of truth.
    comparisons). If you're editing an *existing* skill rather than
    creating a new one, leave its `id` untouched.
 
-   Also add `author` and `repo`, optional but include them unless the
-   user says otherwise:
+   Also add `version`, `author`, and `repo`, optional but include them
+   unless the user says otherwise:
 
    ```yaml
+   version: 1.0.0
    author: Levi Putna
    repo: https://github.com/levi-putna/dot-skills
    ```
 
+   `version` is a semver string. Start new skills at `1.0.0` and bump it
+   whenever you meaningfully change the skill's contents. Patch for
+   wording fixes, minor for new guidance, major for a rewrite that
+   changes how the skill behaves. When users pull a newer copy with
+   `dot-skills update`, the version helps them understand what changed,
+   so bumping it on edit matters more than picking the right part.
+
    `author` is a plain name or handle. `repo` is a link back to the
-   repository this skill's source lives in, not necessarily where a user
-   installed it *from* (that provenance is already tracked separately, per
-   install, in the lockfile), but where to find the canonical, maintained
-   copy. Both travel with the file itself, so they stay attached even if
-   someone copies the raw `SKILL.md` around by hand instead of using
-   `dot-skills add`.
+   repository this skill's source lives in. That's not necessarily where a user
+   installed it from (that provenance is tracked separately per install in the
+   lockfile), but where to find the canonical, maintained copy. Both travel
+   with the file itself, so they stay attached even if someone copies the raw
+   `SKILL.md` around by hand instead of using `dot-skills add`.
 
    If the skill has setup requirements the user must handle themselves
    (an API key, an environment variable, a CLI tool that must be installed),

@@ -2,7 +2,7 @@ import { existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { resolveScope } from '../lib/scope.js'
 import { getAgent } from '../lib/agents.js'
-import { parseSkillMd, getAuthor, getRepo } from '../lib/frontmatter.js'
+import { parseSkillMd, getAuthor, getRepo, getVersion } from '../lib/frontmatter.js'
 import { checkDependencies } from '../lib/installer.js'
 import { bold, blue, dim, green, red, wrap, formatAttribution } from '../lib/format.js'
 
@@ -22,17 +22,19 @@ export function installed({ global: isGlobal } = {}) {
     const skillMdPath = join(scope.skillsDir, name, 'SKILL.md')
     let description = null
     let dependencies = []
-    let author, repo
+    let author, repo, version
     if (existsSync(skillMdPath)) {
       const { data } = parseSkillMd(readFileSync(skillMdPath, 'utf8'))
       description = data.description || '(no description)'
       dependencies = checkDependencies(data)
       author = getAuthor(data)
       repo = getRepo(data)
+      version = getVersion(data)
     }
 
     const source = `${entry.source}${entry.branch ? `@${entry.branch}` : ''}`
-    console.log(`  ${bold(blue(name))}  ${dim(`(${source})`)}`)
+    const versionTag = version || entry.version
+    console.log(`  ${bold(blue(name))}${versionTag ? ` ${dim(`v${versionTag}`)}` : ''}  ${dim(`(${source})`)}`)
     const attribution = formatAttribution(author, repo)
     if (attribution) console.log(dim(`    ${attribution}`))
     console.log(

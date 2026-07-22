@@ -1,7 +1,7 @@
 import * as clack from '@clack/prompts'
 import { parseRepoSpec, listSkillNames, fetchSkillFiles } from '../lib/github.js'
-import { writeSkillFiles, linkSkill, formatDependencyNotice } from '../lib/installer.js'
-import { parseSkillMd, validateSkillData } from '../lib/frontmatter.js'
+import { writeSkillFiles, linkSkill, formatDependencyNotice, hashSkillFiles } from '../lib/installer.js'
+import { parseSkillMd, validateSkillData, getVersion } from '../lib/frontmatter.js'
 import { getAgent } from '../lib/agents.js'
 import { resolveScope } from '../lib/scope.js'
 import { pickAgents } from '../lib/interactive.js'
@@ -114,6 +114,8 @@ export async function add(spec, { global: isGlobal, agents: explicitAgents, all,
     recordSkill(lock, skillName, {
       source: `${parsed.owner}/${parsed.repo}`,
       branch: ref,
+      version: getVersion(data),
+      contentHash: hashSkillFiles(files),
       linkedAgents: agentKeys,
     })
 

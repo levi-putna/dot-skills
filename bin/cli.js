@@ -8,6 +8,7 @@ import { installed } from '../src/commands/installed.js'
 import { link } from '../src/commands/link.js'
 import { remove } from '../src/commands/remove.js'
 import { doctor } from '../src/commands/doctor.js'
+import { update } from '../src/commands/update.js'
 
 const HELP = `dot-skills — one .skills/ folder, linked out to every coding agent.
 
@@ -17,6 +18,7 @@ Usage:
                                             Install skill(s) from a repo's .skills/ folder
   dot-skills list [owner/repo] [--global]  List skills in a repo (or, with no args, in ./.skills/)
   dot-skills installed [--global]          Show installed skills, their agents, and dependency status
+  dot-skills update [skill] [--global]     Check installed skills against their source repos and pull newer versions
   dot-skills link [skill...] [--global]    (Re)link skills into agent directories
   dot-skills remove <skill> [--global]     Remove a skill and unlink it everywhere
   dot-skills doctor [--global]             Check declared dependencies for installed skills
@@ -26,6 +28,8 @@ Flags:
   --agents=a,b          Skip the interactive agent picker; link into exactly these agents
   --all                 Skip the interactive agent picker; link into every supported agent
   --skills=a,b          (add) Skip the interactive skill picker; install exactly these skills
+  --force               (update) Overwrite skills even when they have local changes (default: false)
+  --interactive=false   (update) Never prompt on conflicts; skills with local changes are skipped instead (default: true)
 
 Supported agents (keys): claude, cursor, copilot, windsurf, codex, gemini
 (Claude Code, Cursor, GitHub Copilot, Windsurf, OpenAI Codex CLI, Gemini CLI)
@@ -47,11 +51,15 @@ async function main() {
     )
   }
 
-  const { positional, flags } = parseArgs(rest)
+  const { positional, flags } = parseArgs(rest, {
+    booleans: ['global', 'all', 'force', 'interactive', 'no-interactive'],
+  })
   const agents = typeof flags.agents === 'string' ? flags.agents.split(',').filter(Boolean) : undefined
   const skills = typeof flags.skills === 'string' ? flags.skills.split(',').filter(Boolean) : undefined
   const all = Boolean(flags.all)
   const isGlobal = Boolean(flags.global)
+  const force = flags.force === true || flags.force === 'true'
+  const interactive = !flags['no-interactive'] && flags.interactive !== 'false' && flags.interactive !== false
 
   switch (command) {
     case 'init':
@@ -65,6 +73,9 @@ async function main() {
       break
     case 'installed':
       installed({ global: isGlobal })
+      break
+    case 'update':
+      await update(positional[0], { global: isGlobal, force, interactive })
       break
     case 'link':
       await link(positional, { global: isGlobal, agents, all })

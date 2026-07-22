@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseSkillMd, stringifySkillMd, validateSkillData, getDependencies, getId, getAuthor, getRepo } from './frontmatter.js'
+import { parseSkillMd, stringifySkillMd, validateSkillData, getDependencies, getId, getAuthor, getRepo, getVersion } from './frontmatter.js'
 
 test('parseSkillMd extracts frontmatter and body', () => {
   const content = `---\nname: my-skill\ndescription: does a thing\n---\n\n# Body\n\nHello.\n`
@@ -103,6 +103,23 @@ test('validateSkillData flags a non-string author', () => {
 test('validateSkillData flags a repo that is not a URL', () => {
   const errors = validateSkillData({ name: 'x', description: 'y', repo: 'levi-putna/dot-skills' })
   assert.ok(errors.some((e) => e.includes('repo')))
+})
+
+test('validateSkillData accepts a semver version', () => {
+  const errors = validateSkillData({ name: 'x', description: 'y', version: '1.2.3' })
+  assert.deepEqual(errors, [])
+})
+
+test('validateSkillData flags a non-semver version', () => {
+  const errors = validateSkillData({ name: 'x', description: 'y', version: 'latest' })
+  assert.ok(errors.some((e) => e.includes('version')))
+})
+
+test('getVersion coerces YAML numbers and rejects garbage', () => {
+  assert.equal(getVersion({ version: '1.2.3' }), '1.2.3')
+  assert.equal(getVersion({ version: 1.2 }), '1.2') // yaml parses `version: 1.2` as a number
+  assert.equal(getVersion({ version: 'latest' }), undefined)
+  assert.equal(getVersion({}), undefined)
 })
 
 test('getAuthor and getRepo return the value only when present and a string', () => {

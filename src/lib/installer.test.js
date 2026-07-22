@@ -10,6 +10,8 @@ import {
   removeCanonicalSkill,
   formatDependencyNotice,
   checkDependencies,
+  readSkillFiles,
+  hashSkillFiles,
 } from './installer.js'
 
 function withTmpDir(fn) {
@@ -73,6 +75,50 @@ test('removeCanonicalSkill deletes the source folder', () => {
     assert.equal(removeCanonicalSkill(dir, 'my-skill'), true)
     assert.equal(existsSync(join(dir, 'my-skill')), false)
     assert.equal(removeCanonicalSkill(dir, 'my-skill'), false)
+  })
+})
+
+test('readSkillFiles round-trips what writeSkillFiles wrote', () => {
+  withTmpDir((dir) => {
+    const files = [
+      { path: 'SKILL.md', content: '---\nname: my-skill\n---\nbody' },
+      { path: 'references/notes.md', content: 'notes' },
+    ]
+    writeSkillFiles(dir, 'my-skill', files)
+    const read = readSkillFiles(dir, 'my-skill')
+    assert.equal(read.length, 2)
+    assert.deepEqual(
+      read.sort((a, b) => a.path.localeCompare(b.path)),
+      files.sort((a, b) => a.path.localeCompare(b.path)),
+    )
+  })
+})
+
+test('readSkillFiles returns null for a missing skill', () => {
+  withTmpDir((dir) => {
+    assert.equal(readSkillFiles(dir, 'nope'), null)
+  })
+})
+
+test('hashSkillFiles is stable across file order and changes with content', () => {
+  const a = [
+    { path: 'SKILL.md', content: 'one' },
+    { path: 'references/notes.md', content: 'two' },
+  ]
+  const b = [a[1], a[0]]
+  assert.equal(hashSkillFiles(a), hashSkillFiles(b))
+  assert.notEqual(hashSkillFiles(a), hashSkillFiles([{ path: 'SKILL.md', content: 'changed' }, a[1]]))
+  assert.notEqual(hashSkillFiles(a), hashSkillFiles([a[0]]))
+})
+
+test('hashSkillFiles matches between fetched files and files read back from disk', () => {
+  withTmpDir((dir) => {
+    const files = [
+      { path: 'SKILL.md', content: '---\nname: my-skill\n---\nbody\n' },
+      { path: 'scripts/run.sh', content: '#!/bin/sh\necho hi\n' },
+    ]
+    writeSkillFiles(dir, 'my-skill', files)
+    assert.equal(hashSkillFiles(files), hashSkillFiles(readSkillFiles(dir, 'my-skill')))
   })
 })
 

@@ -1,5 +1,6 @@
-import { mkdirSync, writeFileSync, symlinkSync, existsSync, rmSync, lstatSync, cpSync } from 'fs'
+import { mkdirSync, writeFileSync, symlinkSync, existsSync, rmSync, lstatSync, cpSync, readdirSync, readFileSync } from 'fs'
 import { join, dirname } from 'path'
+import { createHash } from 'crypto'
 import { getDependencies } from './frontmatter.js'
 
 // Write a skill's files into <skillsDir>/<skillName>/...
@@ -12,6 +13,41 @@ export function writeSkillFiles(skillsDir, skillName, files) {
     writeFileSync(dest, file.content, 'utf8')
   }
   return skillDir
+}
+
+// Read every file in an installed skill folder back as [{ path, content }],
+// with paths relative to the skill dir — the same shape fetchSkillFiles
+// returns, so the two sides can be hashed and compared.
+export function readSkillFiles(skillsDir, skillName) {
+  const skillDir = join(skillsDir, skillName)
+  if (!existsSync(skillDir)) return null
+  const files = []
+  const walk = (dir, prefix) => {
+    for (const entry of readdirSync(dir, { withFileTypes: true })) {
+      const rel = prefix ? `${prefix}/${entry.name}` : entry.name
+      if (entry.isDirectory()) {
+        walk(join(dir, entry.name), rel)
+      } else if (entry.isFile()) {
+        files.push({ path: rel, content: readFileSync(join(dir, entry.name), 'utf8') })
+      }
+    }
+  }
+  walk(skillDir, '')
+  return files
+}
+
+// Stable fingerprint of a skill's contents (order-independent), stored in
+// the lockfile at install time so `update` can tell local edits apart from
+// upstream changes.
+export function hashSkillFiles(files) {
+  const hash = createHash('sha256')
+  for (const file of [...files].sort((a, b) => a.path.localeCompare(b.path))) {
+    hash.update(file.path)
+    hash.update('\0')
+    hash.update(file.content)
+    hash.update('\0')
+  }
+  return hash.digest('hex')
 }
 
 // Link (or copy, if symlinks aren't available) canonicalSkillDir into agentSkillsDir/skillName.

@@ -68,7 +68,8 @@ below.
 | `dot-skills init` | Create `.skills/` in the current project (if missing), install the two starter skills, link into chosen agents |
 | `dot-skills add <owner/repo>[/skill][#ref]` | Install one or more skills from a repo's `.skills/` folder |
 | `dot-skills list [owner/repo]` | List skills + descriptions in a repo, or (no args) in the local `.skills/` |
-| `dot-skills installed` | Show installed skills: source, linked agents, dependency status |
+| `dot-skills installed` | Show installed skills: source, version, linked agents, dependency status |
+| `dot-skills update [skill]` | Check installed skills against their source repos and pull down newer versions (see [Updating skills](#updating-skills)) |
 | `dot-skills link [skill...]` | (Re)create symlinks for skills already in `.skills/`, e.g. after adding a new agent to the project |
 | `dot-skills remove <skill>` | Delete a skill from `.skills/` and unlink it from every agent it was linked into |
 | `dot-skills doctor` | Check every installed skill's declared dependencies against the current environment |
@@ -88,6 +89,42 @@ status. Color is automatically disabled when output isn't a terminal
 `dot-skills list <owner/repo>` also marks entries you already have
 installed (project-local or global) with `(already installed)`, matched by
 `id` where available and falling back to name.
+
+## Updating skills
+
+```sh
+# Check every installed skill against the repo it was installed from
+npx dot-skills update
+
+# Update just one skill
+npx dot-skills update reviewing-code
+```
+
+`update` re-fetches each skill from the `owner/repo` (and branch) recorded
+in the lockfile at install time and compares contents. Skills whose files
+match upstream are reported as up to date; anything that changed upstream
+gets pulled down, re-linked into the same agents, and re-recorded in the
+lockfile.
+
+If you've edited a skill locally since installing it, `update` won't
+silently destroy your changes: it prompts per-skill before overwriting
+(the default answer is *No*). Two flags control this:
+
+- `--force`: overwrite everything with no prompts (default: `false`)
+- `--interactive=false` (or `--no-interactive`): never prompt. Skills
+  with local changes are skipped instead. This is also the automatic
+  behaviour when stdin isn't a TTY, for example in CI
+
+Skills that can't be checked are never touched; they're listed at the end
+as *skipped* with the reason: created locally (no source repo to check),
+bundled with dot-skills itself, the source repo no longer exists or is now
+private, or the skill folder was removed upstream.
+
+Version numbers come from the optional `version` frontmatter field (see
+below). When both your copy and the upstream copy declare one, `update`
+shows the change (`1.0.0 -> 1.1.0`) and skips downgrades (upstream version
+older than yours). Skills without a `version` are still updatable. Change
+detection is content-based, so versions are informative rather than required.
 
 ## Skill format
 
@@ -109,6 +146,7 @@ A skill is a folder under `.skills/`:
 ---
 name: my-skill
 id: 56824965-a4de-4b74-bf8d-5d04b598de77
+version: 1.0.0
 author: Your Name
 repo: https://github.com/your-name/your-skills-repo
 description: >-
@@ -140,6 +178,11 @@ you already have installed, and to recognize the two starter skills
 regardless of what a particular copy got renamed to (see below). It's
 optional but recommended; skills without one just don't get either
 benefit.
+
+`version` is an optional semver string, bumped by the skill's author when
+its contents change meaningfully. `dot-skills update` uses it to report
+what changed (`1.0.0 -> 1.1.0`) and to avoid replacing a newer local copy
+with an older upstream one; `installed` shows it next to the skill name.
 
 `author` and `repo` are both optional plain-text attribution: who wrote
 the skill, and a link back to where its canonical, maintained source

@@ -45,6 +45,22 @@ test('recordSkill adds a skill entry with timestamps', () => {
   assert.equal(lock.skills['my-skill'].dependencies, undefined)
 })
 
+test('recordSkill stores version and contentHash, defaulting to null', () => {
+  const lock = { skills: {} }
+  recordSkill(lock, 'my-skill', { source: 'owner/repo', linkedAgents: [] })
+  assert.equal(lock.skills['my-skill'].version, null)
+  assert.equal(lock.skills['my-skill'].contentHash, null)
+
+  recordSkill(lock, 'my-skill', {
+    source: 'owner/repo',
+    linkedAgents: [],
+    version: '1.2.3',
+    contentHash: 'abc123',
+  })
+  assert.equal(lock.skills['my-skill'].version, '1.2.3')
+  assert.equal(lock.skills['my-skill'].contentHash, 'abc123')
+})
+
 test('recordSkill preserves original installedAt on update', () => {
   const lock = { skills: {} }
   recordSkill(lock, 'my-skill', { source: 'a', linkedAgents: [] })

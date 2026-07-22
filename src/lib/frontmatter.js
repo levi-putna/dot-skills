@@ -1,4 +1,5 @@
 import yaml from 'js-yaml'
+import { isValidVersion } from './version.js'
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---\r?\n?([\s\S]*)$/
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -36,6 +37,9 @@ export function validateSkillData(data, { source = 'SKILL.md' } = {}) {
   if (data.author !== undefined && typeof data.author !== 'string') {
     errors.push(`${source}: "author" must be a string`)
   }
+  if (data.version !== undefined && !isValidVersion(String(data.version))) {
+    errors.push(`${source}: "version" must be a semver string (e.g. "1.0.0")`)
+  }
   if (data.repo !== undefined && (typeof data.repo !== 'string' || !/^https?:\/\//.test(data.repo))) {
     errors.push(`${source}: "repo" must be a URL (e.g. https://github.com/owner/repo)`)
   }
@@ -67,4 +71,11 @@ export function getAuthor(data) {
 
 export function getRepo(data) {
   return typeof data.repo === 'string' ? data.repo : undefined
+}
+
+// YAML happily parses `version: 1.0` as a number, so coerce before validating.
+export function getVersion(data) {
+  if (data.version === undefined || data.version === null) return undefined
+  const version = String(data.version)
+  return isValidVersion(version) ? version : undefined
 }

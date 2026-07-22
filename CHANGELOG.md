@@ -4,6 +4,24 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 uses [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-07-22
+
+### Added
+
+- `dot-skills update [skill]` command: checks installed skills against the
+  source repo recorded in the lockfile and pulls down newer versions.
+  Skills with local edits prompt before being overwritten. Use `--force`
+  to overwrite everything, or `--interactive=false` to skip conflicted skills
+  instead of prompting. Skills that can't be checked (created locally,
+  bundled, source repo gone or private, or removed upstream) are
+  reported as skipped with the reason.
+- Optional `version` frontmatter field (semver) on skills, shown by
+  `installed` and used by `update` to report version changes and skip
+  downgrades.
+- The lockfile now records each skill's `version` and a `contentHash`
+  fingerprint at install time, so `update` can tell local edits apart
+  from upstream changes.
+
 ## [0.1.1] - 2026-07-21
 
 ### Fixed

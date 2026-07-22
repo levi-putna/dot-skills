@@ -46,10 +46,14 @@ export function writeGlobalLockfile(data) {
 // Record (or overwrite) a skill's install metadata. Dependency status is
 // intentionally not cached here — doctor/installed re-read the live
 // SKILL.md instead, so a stale lockfile entry can never lie about it.
-export function recordSkill(lock, skillName, { source, branch, linkedAgents }) {
+export function recordSkill(lock, skillName, { source, branch, linkedAgents, version, contentHash }) {
   lock.skills[skillName] = {
     source: source || 'local',
     branch: branch || null,
+    version: version || null,
+    // Fingerprint of the files as installed — used by `update` to detect
+    // local edits before overwriting them.
+    contentHash: contentHash || null,
     linkedAgents: linkedAgents || [],
     installedAt: lock.skills[skillName]?.installedAt || nowIso(),
     updatedAt: nowIso(),
