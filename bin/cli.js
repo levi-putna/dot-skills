@@ -9,6 +9,8 @@ import { link } from '../src/commands/link.js'
 import { remove } from '../src/commands/remove.js'
 import { doctor } from '../src/commands/doctor.js'
 import { update } from '../src/commands/update.js'
+import { version } from '../src/commands/version.js'
+import { requireSkill } from '../src/commands/require.js'
 
 const HELP = `dot-skills — one .skills/ folder, linked out to every coding agent.
 
@@ -21,15 +23,23 @@ Usage:
   dot-skills update [skill] [--global]     Check installed skills against their source repos and pull newer versions
   dot-skills link [skill...] [--global]    (Re)link skills into agent directories
   dot-skills remove <skill> [--global]     Remove a skill and unlink it everywhere
-  dot-skills doctor [--global]             Check declared dependencies for installed skills
+  dot-skills doctor [--global] [--links] [--fix]
+                                            Check declared dependencies (and, with --links, symlink health) for installed skills
+  dot-skills version <skill> <major|minor|patch|x.y.z> [--global]
+                                            Bump or set a skill's version frontmatter
+  dot-skills require <skill> <dep> [--global]
+                                            Add a skill-to-skill dependency (local name or owner/repo/skill[#ref])
 
 Flags:
   --global              Act on ~/.dot-skills instead of the current project's .skills/
   --agents=a,b          Skip the interactive agent picker; link into exactly these agents
   --all                 Skip the interactive agent picker; link into every supported agent
   --skills=a,b          (add) Skip the interactive skill picker; install exactly these skills
-  --force               (update) Overwrite skills even when they have local changes (default: false)
-  --interactive=false   (update) Never prompt on conflicts; skills with local changes are skipped instead (default: true)
+  --force               (update/remove) Overwrite or remove without confirming (default: false)
+  --interactive=false   (update/remove) Never prompt on conflicts; skills with local changes (update) or
+                         still-required dependents (remove) are skipped instead (default: true)
+  --links               (doctor) Also audit symlinks between .skills/ and every agent's skills directory
+  --fix                 (doctor) With --links, repair any symlink issues found instead of just reporting them
 
 Supported agents (keys): claude, cursor, copilot, windsurf, codex, gemini
 (Claude Code, Cursor, GitHub Copilot, Windsurf, OpenAI Codex CLI, Gemini CLI)
@@ -46,13 +56,13 @@ async function main() {
   const bootstrap = ensureFirstRunBootstrap()
   if (bootstrap) {
     console.log(
-      `First run: installed starter skills ("creating-skills", "importing-skills") to ${bootstrap.globalSkillsDir}` +
+      `First run: installed starter skills ("dotskills-create-skill", "dotskills-import-skill") to ${bootstrap.globalSkillsDir}` +
         (bootstrap.linkedAgents.length ? ` and linked into ${bootstrap.linkedAgents.join(', ')}.` : '.'),
     )
   }
 
   const { positional, flags } = parseArgs(rest, {
-    booleans: ['global', 'all', 'force', 'interactive', 'no-interactive'],
+    booleans: ['global', 'all', 'force', 'interactive', 'no-interactive', 'links', 'fix'],
   })
   const agents = typeof flags.agents === 'string' ? flags.agents.split(',').filter(Boolean) : undefined
   const skills = typeof flags.skills === 'string' ? flags.skills.split(',').filter(Boolean) : undefined
@@ -60,6 +70,8 @@ async function main() {
   const isGlobal = Boolean(flags.global)
   const force = flags.force === true || flags.force === 'true'
   const interactive = !flags['no-interactive'] && flags.interactive !== 'false' && flags.interactive !== false
+  const links = Boolean(flags.links)
+  const fix = Boolean(flags.fix)
 
   switch (command) {
     case 'init':
@@ -81,10 +93,16 @@ async function main() {
       await link(positional, { global: isGlobal, agents, all })
       break
     case 'remove':
-      await remove(positional[0], { global: isGlobal })
+      await remove(positional[0], { global: isGlobal, force, interactive })
       break
     case 'doctor':
-      doctor({ global: isGlobal })
+      doctor({ global: isGlobal, links, fix })
+      break
+    case 'version':
+      await version(positional[0], positional[1], { global: isGlobal })
+      break
+    case 'require':
+      await requireSkill(positional[0], positional[1], { global: isGlobal })
       break
     default:
       console.error(`Unknown command: ${command}\n`)

@@ -1,5 +1,5 @@
 ---
-name: reviewing-code
+name: development-review-code
 id: 56824965-a4de-4b74-bf8d-5d04b598de77
 author: Levi Putna
 repo: https://github.com/levi-putna/dot-skills

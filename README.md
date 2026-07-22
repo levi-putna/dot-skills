@@ -43,7 +43,7 @@ itself.
 npx dot-skills init
 
 # Install a skill from any repo with a .skills/ folder
-npx dot-skills add levi-putna/dot-skills/creating-skills
+npx dot-skills add levi-putna/dot-skills/dotskills-create-skill
 
 # See what's available in a repo before installing
 npx dot-skills list owner/repo
@@ -66,13 +66,15 @@ below.
 | Command | Does |
 |---|---|
 | `dot-skills init` | Create `.skills/` in the current project (if missing), install the two starter skills, link into chosen agents |
-| `dot-skills add <owner/repo>[/skill][#ref]` | Install one or more skills from a repo's `.skills/` folder |
+| `dot-skills add <owner/repo>[/skill][#ref]` | Install one or more skills from a repo's `.skills/` folder (and any skills they `require`) |
 | `dot-skills list [owner/repo]` | List skills + descriptions in a repo, or (no args) in the local `.skills/` |
 | `dot-skills installed` | Show installed skills: source, version, linked agents, dependency status |
 | `dot-skills update [skill]` | Check installed skills against their source repos and pull down newer versions (see [Updating skills](#updating-skills)) |
 | `dot-skills link [skill...]` | (Re)create symlinks for skills already in `.skills/`, e.g. after adding a new agent to the project |
 | `dot-skills remove <skill>` | Delete a skill from `.skills/` and unlink it from every agent it was linked into |
-| `dot-skills doctor` | Check every installed skill's declared dependencies against the current environment |
+| `dot-skills doctor [--links] [--fix]` | Check every installed skill's declared dependencies against the current environment (and, with `--links`, symlink health — see [Checking symlinks](#checking-symlinks)) |
+| `dot-skills version <skill> <major\|minor\|patch\|x.y.z>` | Bump or set a skill's `version` frontmatter |
+| `dot-skills require <skill> <dep>` | Add a skill-to-skill dependency (`local-name` or `owner/repo/skill[#ref]`) |
 
 Every command accepts `--global` to operate on `~/.dot-skills/skills/` and
 each agent's global directory instead of the current project.
@@ -81,8 +83,8 @@ Non-interactive flags (for scripts/CI, and used automatically when stdin
 isn't a TTY): `--agents=claude,cursor`, `--all`, and (for `add`)
 `--skills=a,b`.
 
-`list`, `installed`, and `doctor` word-wrap descriptions to the terminal
-width (capped at a readable ~88 columns) and color-highlight names and
+`list` and `installed` word-wrap descriptions to the terminal width
+(capped at a readable ~88 columns); all commands color-highlight names and
 status. Color is automatically disabled when output isn't a terminal
 (piped to a file or another command) or when `NO_COLOR` is set.
 
@@ -97,7 +99,7 @@ installed (project-local or global) with `(already installed)`, matched by
 npx dot-skills update
 
 # Update just one skill
-npx dot-skills update reviewing-code
+npx dot-skills update development-review-code
 ```
 
 `update` re-fetches each skill from the `owner/repo` (and branch) recorded
@@ -125,6 +127,37 @@ below). When both your copy and the upstream copy declare one, `update`
 shows the change (`1.0.0 -> 1.1.0`) and skips downgrades (upstream version
 older than yours). Skills without a `version` are still updatable. Change
 detection is content-based, so versions are informative rather than required.
+
+## Checking symlinks
+
+```sh
+# Audit every skill in .skills/ against every agent — reports missing,
+# broken, mis-pointed, and orphaned links without changing anything
+npx dot-skills doctor --links
+
+# Same audit, but repair everything it finds
+npx dot-skills doctor --links --fix
+```
+
+`doctor --links` scans `.skills/` directly off disk (not just the
+lockfile), so skills you've added by hand are covered too, not only ones
+installed via `add`/`link`. For every skill and every agent detected in
+this project (or, with `--global`, every agent detected on the machine —
+plus any agent a skill's lockfile entry already claims it's linked into),
+it reports one of:
+
+- **missing** — no link exists yet
+- **broken** — a symlink whose target no longer exists
+- **wrong-target** — a symlink pointing somewhere other than the canonical `.skills/<name>`
+- **stale-copy** — a fallback copy (filesystems without symlink support) whose contents no longer match the canonical copy
+- **orphan** — a leftover entry in an agent's skills dir with no matching folder left in `.skills/`
+
+Without `--fix` it's read-only and exits non-zero if it finds anything.
+With `--fix`, every issue above gets repaired in place (re-linked, or in
+the orphan's case, removed), and each affected skill's lockfile entry is
+brought in line with what's actually on disk afterwards — including
+creating one for hand-added skills that never had a lockfile entry at all.
+Rerun `dot-skills doctor --links` afterwards to confirm it's clean.
 
 ## Skill format
 
@@ -199,17 +232,71 @@ these as a setup notice right after installing, and `dot-skills doctor`
 re-checks `env` dependencies against the current shell at any time (`cli`
 dependencies are reported but can't be auto-verified).
 
+## Skill-to-skill dependencies (`requires`)
+
+A skill can declare that it needs other skills installed alongside it,
+using a separate `requires` frontmatter field (kept distinct from the
+env/cli `dependencies` above):
+
+```yaml
+requires:
+  - id: 56824965-a4de-4b74-bf8d-5d04b598de77
+    source: owner/other-repo      # optional #branch
+    name: helper-skill            # optional hint; id is authoritative
+  - id: 8e2c1b0a-1111-2222-3333-444444444444
+    source: self                  # sibling skill in the same repo
+    name: another-helper
+  - id: 2f9a7d3e-aaaa-bbbb-cccc-dddddddddddd
+    name: yet-another-helper      # source omitted — same as source: self
+```
+
+Each entry needs the target skill's stable `id`. `source` is either an
+`owner/repo[#ref]` (same shorthand as `dot-skills add`) or the literal
+`self`, meaning "resolve within whichever repo/ref this skill itself came
+from." Omitting `source` entirely also means `self` — the common case of
+two skills published side by side in the same `.skills/` folder.
+
+There is no version constraint on `requires`. Dependencies always resolve
+to whatever is at the declared source/ref right now, matching how `add`
+and `update` already work. Conflicting sources for the same `id`, name
+collisions with an unrelated local skill, and circular dependencies are
+hard errors.
+
+Prefer the CLI over hand-editing frontmatter:
+
+```sh
+# Same-repo / local sibling (writes source: self by omitting it)
+npx dot-skills require my-skill helper-skill
+
+# Cross-repo
+npx dot-skills require my-skill owner/other-repo/helper-skill
+
+# Bump version after a meaningful change
+npx dot-skills version my-skill minor
+```
+
+`dot-skills require` verifies the dependency actually exists (reads the
+local sibling, or fetches the remote `SKILL.md`) and refuses to write an
+entry when the target has no `id`. `add` resolves the full dependency
+tree before installing, shows everything that will be pulled in, and
+confirms once. `update` installs any newly declared requires that are
+still missing. `remove` warns when other installed skills still depend on
+the skill being removed (override with `--force`). `installed` and
+`doctor` both surface `requires` status (`ok` / `MISSING`) live from
+each skill's frontmatter — nothing is cached in the lockfile.
+
 ## Starter skills (installed on first run)
 
 Two meta-skills ship with `dot-skills` itself and get installed
 automatically: into `.skills/` on `init`, and globally to
 `~/.dot-skills/skills/` the very first time `dot-skills` runs on a machine:
 
-- **`creating-skills`**: how to author a new skill: naming, the
-  frontmatter schema above, writing a description that actually triggers,
-  and linking it out once it's written. Point an agent at this whenever
-  someone asks it to "make this a skill" or "add a skill for X."
-- **`importing-skills`**: how to migrate something that already exists in
+- **`dotskills-create-skill`**: how to author a new skill: the
+  `<domain>-<action>-<topic>` naming convention, the frontmatter schema
+  above, writing a description that actually triggers, and linking it out
+  once it's written. Point an agent at this whenever someone asks it to
+  "make this a skill" or "add a skill for X."
+- **`dotskills-import-skill`**: how to migrate something that already exists in
   agent-native form (a legacy `.cursorrules` or `.cursor/rules/*.mdc`, a
   `.clinerules`, `.windsurfrules`, `.github/copilot-instructions.md`, a
   section of `AGENTS.md`/`CLAUDE.md`, or a `SKILL.md` sitting untracked in
@@ -218,15 +305,15 @@ automatically: into `.skills/` on `init`, and globally to
   existing rules into `dot-skills` format.
 
 Both are themselves ordinary skills. Read them at
-[`.skills/creating-skills/SKILL.md`](.skills/creating-skills/SKILL.md) and
-[`.skills/importing-skills/SKILL.md`](.skills/importing-skills/SKILL.md).
+[`.skills/dotskills-create-skill/SKILL.md`](.skills/dotskills-create-skill/SKILL.md) and
+[`.skills/dotskills-import-skill/SKILL.md`](.skills/dotskills-import-skill/SKILL.md).
 
 Because `init` copies these two into every consuming project's own
 `.skills/`, practically any dot-skills-enabled repo ends up carrying a copy,
 so `dot-skills list <owner/repo>` deliberately never shows them, no
 matter whose repo you point it at (matched by their fixed `id`, so a
 renamed copy is still recognized). They're still installable by name if
-you ever need to recover one: `dot-skills add <owner/repo>/creating-skills`.
+you ever need to recover one: `dot-skills add <owner/repo>/dotskills-create-skill`.
 
 ## Also available from this repo
 
@@ -235,18 +322,18 @@ more you can install the same way any other repo's skills install; they're
 opt-in, not auto-installed by `init`:
 
 ```sh
-npx dot-skills add levi-putna/dot-skills/reviewing-code
-npx dot-skills add levi-putna/dot-skills/checking-release-readiness
-npx dot-skills add levi-putna/dot-skills/preparing-a-release
+npx dot-skills add levi-putna/dot-skills/development-review-code
+npx dot-skills add levi-putna/dot-skills/development-check-release-readiness
+npx dot-skills add levi-putna/dot-skills/development-prepare-release
 ```
 
-- **`reviewing-code`**: reviews a diff, PR, or set of files for
+- **`development-review-code`**: reviews a diff, PR, or set of files for
   correctness and security bugs. Reports findings and asks how you want
   each one handled; never edits code unilaterally.
-- **`checking-release-readiness`**: audits code and documentation for
+- **`development-check-release-readiness`**: audits code and documentation for
   drift: claims in the README that no longer match what the code does,
   broken internal links, undocumented flags.
-- **`preparing-a-release`**: runs the two skills above, proposes a
+- **`development-prepare-release`**: runs the two skills above, proposes a
   semver bump based on what actually changed, updates
   [`CHANGELOG.md`](CHANGELOG.md), verifies git is committed and pushed,
   and hands back the exact `npm publish` command (it never runs

@@ -1,9 +1,13 @@
-// Loose semver handling with no dependency: optional "v" prefix, one to
-// three numeric parts (missing parts default to 0), optional prerelease.
+/**
+ * Loose semver handling with no dependency: optional "v" prefix, one to
+ * three numeric parts (missing parts default to 0), optional prerelease.
+ */
 const VERSION_RE = /^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?$/
 
-// Parse a version string into { major, minor, patch, prerelease[] }, or
-// null when the string isn't a recognisable version.
+/**
+ * Parse a version string into { major, minor, patch, prerelease[] }, or
+ * null when the string isn't a recognisable version.
+ */
 export function parseVersion(input) {
   if (typeof input !== 'string') return null
   const match = VERSION_RE.exec(input.trim())
@@ -20,8 +24,10 @@ export function isValidVersion(input) {
   return parseVersion(input) !== null
 }
 
-// Semver precedence: -1 when a < b, 0 when equal, 1 when a > b.
-// A prerelease sorts before its corresponding release (1.0.0-rc.1 < 1.0.0).
+/**
+ * Semver precedence: -1 when a < b, 0 when equal, 1 when a > b.
+ * A prerelease sorts before its corresponding release (1.0.0-rc.1 < 1.0.0).
+ */
 export function compareVersions(a, b) {
   const va = parseVersion(a)
   const vb = parseVersion(b)
@@ -55,4 +61,56 @@ export function compareVersions(a, b) {
     }
   }
   return 0
+}
+
+/**
+ * Format a parsed version back to a canonical `major.minor.patch` string
+ * (prerelease stripped — bumps always produce a release version).
+ */
+export function formatVersion({ major, minor, patch } = {}) {
+  return `${major}.${minor}.${patch}`
+}
+
+/**
+ * Bump a version by kind (`major`/`minor`/`patch`) or set an explicit semver.
+ * Returns { version, from, initialized }.
+ * When `current` is missing, initializes to `1.0.0` for kind bumps.
+ */
+export function bumpVersion(current, kind) {
+  if (!kind || typeof kind !== 'string') {
+    throw new Error('Version bump kind is required (major, minor, patch, or an explicit x.y.z)')
+  }
+
+  const trimmed = kind.trim()
+  if (['major', 'minor', 'patch'].includes(trimmed)) {
+    if (!current) {
+      return { version: '1.0.0', from: null, initialized: true }
+    }
+    const parsed = parseVersion(current)
+    if (!parsed) {
+      throw new Error(`Cannot bump invalid version "${current}"`)
+    }
+    let { major, minor, patch } = parsed
+    if (trimmed === 'major') {
+      major += 1
+      minor = 0
+      patch = 0
+    } else if (trimmed === 'minor') {
+      minor += 1
+      patch = 0
+    } else {
+      patch += 1
+    }
+    return { version: formatVersion({ major, minor, patch }), from: current, initialized: false }
+  }
+
+  if (!isValidVersion(trimmed)) {
+    throw new Error(
+      `Invalid version "${kind}" — expected major, minor, patch, or a semver string like 1.2.3`,
+    )
+  }
+  // Strip optional "v" prefix for storage consistency.
+  const parsed = parseVersion(trimmed)
+  const version = formatVersion(parsed)
+  return { version, from: current || null, initialized: !current }
 }

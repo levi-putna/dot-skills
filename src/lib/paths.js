@@ -11,7 +11,7 @@ export const PACKAGE_ROOT = dirname(dirname(dirname(fileURLToPath(import.meta.ur
 // doubles as a normal dot-skills source repo (`dot-skills add levi-putna/dot-skills`).
 export const BUNDLED_SKILLS_DIR = join(PACKAGE_ROOT, '.skills')
 
-export const BUNDLED_META_SKILLS = ['creating-skills', 'importing-skills']
+export const BUNDLED_META_SKILLS = ['dotskills-create-skill', 'dotskills-import-skill']
 
 // The bundled meta-skills' real ids, read from the shipped SKILL.md files
 // themselves rather than duplicated as a second hardcoded copy here — that

@@ -1,5 +1,5 @@
 ---
-name: importing-skills
+name: dotskills-import-skill
 id: 7233a916-ec70-432d-bb6e-ca0c5b91b974
 author: Levi Putna
 repo: https://github.com/levi-putna/dot-skills
@@ -47,15 +47,20 @@ giant skill.
    like boilerplate often encode a real project convention.
 
 2. **Identify the distinct capability (or capabilities).** For each one,
-   decide a kebab-case name and draft a one-to-three-sentence description
-   that states what it does and when it should trigger (see the
-   `creating-skills` skill for what makes a good description).
+   decide a name following the `<domain>-<action>-<topic>` naming
+   convention (see the `dotskills-create-skill` skill for the full rules
+   and examples) and draft a one-to-three-sentence description that
+   states what it does and when it should trigger (see the
+   `dotskills-create-skill` skill for what makes a good description).
+   Rename anything that doesn't already fit the convention, even if the
+   source file used a different style (a legacy `.cursorrules` might be
+   named after a gerund or noun phrase; convert it).
 
 3. **Extract any implicit dependencies.** Legacy rule files often assume
    tooling or environment variables without saying so explicitly (e.g. "run
    the linter" implies a CLI must be installed, "call the API" may imply an
    API key). Surface these as a `dependencies:` list in the new
-   frontmatter (see `creating-skills` for the schema) rather than leaving
+   frontmatter (see `dotskills-create-skill` for the schema) rather than leaving
    them buried in prose.
 
 4. **Write `.skills/<name>/SKILL.md`** with proper frontmatter and a body

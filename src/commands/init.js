@@ -59,7 +59,7 @@ export async function init({ agents: explicit, all } = {}) {
       agentKeys.length
         ? `Linked into: ${agentKeys.map((k) => getAgent(k).name).join(', ')}`
         : 'No agents linked yet — run `dot-skills link` once you have agent config dirs.',
-      'Two starter skills are installed: "creating-skills" and "importing-skills".',
+      'Two starter skills are installed: "dotskills-create-skill" and "dotskills-import-skill".',
     ].join('\n'),
   )
 }

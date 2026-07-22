@@ -1,6 +1,17 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseSkillMd, stringifySkillMd, validateSkillData, getDependencies, getId, getAuthor, getRepo, getVersion } from './frontmatter.js'
+import {
+  parseSkillMd,
+  stringifySkillMd,
+  validateSkillData,
+  getDependencies,
+  getRequires,
+  getId,
+  getAuthor,
+  getRepo,
+  getVersion,
+  isValidRequiresSource,
+} from './frontmatter.js'
 
 test('parseSkillMd extracts frontmatter and body', () => {
   const content = `---\nname: my-skill\ndescription: does a thing\n---\n\n# Body\n\nHello.\n`
@@ -127,4 +138,57 @@ test('getAuthor and getRepo return the value only when present and a string', ()
   assert.equal(getAuthor({}), undefined)
   assert.equal(getRepo({ repo: 'https://github.com/levi-putna/dot-skills' }), 'https://github.com/levi-putna/dot-skills')
   assert.equal(getRepo({ repo: 123 }), undefined)
+})
+
+test('getRequires normalizes missing source and self to self', () => {
+  const id = '56824965-a4de-4b74-bf8d-5d04b598de77'
+  const requires = getRequires({
+    requires: [
+      { id, name: 'helper' },
+      { id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', source: 'self', name: 'other' },
+      { id: '11111111-2222-3333-4444-555555555555', source: 'owner/repo#main', name: 'remote' },
+    ],
+  })
+  assert.equal(requires.length, 3)
+  assert.equal(requires[0].source, 'self')
+  assert.equal(requires[1].source, 'self')
+  assert.equal(requires[2].source, 'owner/repo#main')
+  assert.equal(requires[0].name, 'helper')
+})
+
+test('getRequires skips entries with invalid ids', () => {
+  assert.deepEqual(getRequires({ requires: [{ id: 'not-a-uuid', name: 'x' }] }), [])
+  assert.deepEqual(getRequires({}), [])
+})
+
+test('validateSkillData accepts well-formed requires entries', () => {
+  const errors = validateSkillData({
+    name: 'x',
+    description: 'y',
+    requires: [
+      { id: '56824965-a4de-4b74-bf8d-5d04b598de77', name: 'helper' },
+      { id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', source: 'self' },
+      { id: '11111111-2222-3333-4444-555555555555', source: 'owner/repo' },
+    ],
+  })
+  assert.deepEqual(errors, [])
+})
+
+test('validateSkillData flags bad requires id and source', () => {
+  const errors = validateSkillData({
+    name: 'x',
+    description: 'y',
+    requires: [{ id: 'bad', source: 'not a repo' }],
+  })
+  assert.ok(errors.some((e) => e.includes('id')))
+  assert.ok(errors.some((e) => e.includes('source')))
+})
+
+test('isValidRequiresSource accepts self and owner/repo forms', () => {
+  assert.equal(isValidRequiresSource('self'), true)
+  assert.equal(isValidRequiresSource('owner/repo'), true)
+  assert.equal(isValidRequiresSource('owner/repo#branch'), true)
+  assert.equal(isValidRequiresSource('owner/repo/skill'), true)
+  assert.equal(isValidRequiresSource(''), false)
+  assert.equal(isValidRequiresSource('noslash'), false)
 })

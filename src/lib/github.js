@@ -1,3 +1,5 @@
+import { parseSkillMd, getId } from './frontmatter.js'
+
 const API = 'https://api.github.com'
 const RAW = 'https://raw.githubusercontent.com'
 
@@ -66,7 +68,10 @@ export async function fetchRawText({ owner, repo, ref, path }) {
   return res.text()
 }
 
-// Fetch every file belonging to one skill folder: [{ path (relative to skill dir), content }]
+/**
+ * Fetch every file belonging to one skill folder:
+ * [{ path (relative to skill dir), content }]
+ */
 export async function fetchSkillFiles({ owner, repo, ref, skillName }) {
   const { branch, entries } = await getSkillsTree({ owner, repo, ref })
   const prefix = `.skills/${skillName}/`
@@ -80,4 +85,47 @@ export async function fetchSkillFiles({ owner, repo, ref, skillName }) {
     results.push({ path: file.path.slice(prefix.length), content })
   }
   return { branch, files: results }
+}
+
+/**
+ * Find a skill in a repo by its stable `id` UUID.
+ * Tries `nameHint` first (one fetch); on miss/mismatch, scans every SKILL.md
+ * under `.skills/`. Returns { branch, skillName, data, content } or throws.
+ */
+export async function findSkillById({ owner, repo, ref, id, nameHint } = {}) {
+  const { branch, names } = await listSkillNames({ owner, repo, ref })
+
+  const tryName = async (skillName) => {
+    try {
+      const content = await fetchRawText({
+        owner,
+        repo,
+        ref: branch,
+        path: `.skills/${skillName}/SKILL.md`,
+      })
+      const { data } = parseSkillMd(content)
+      if (getId(data) === id) {
+        return { branch, skillName, data, content }
+      }
+    } catch {
+      // Name hint missed or skill folder missing — fall through to full scan.
+    }
+    return null
+  }
+
+  if (nameHint) {
+    const hit = await tryName(nameHint)
+    if (hit) return hit
+  }
+
+  for (const skillName of names) {
+    if (skillName === nameHint) continue
+    const hit = await tryName(skillName)
+    if (hit) return hit
+  }
+
+  throw new Error(
+    `No skill with id "${id}" found in ${owner}/${repo}@${branch}` +
+      (nameHint ? ` (also tried name hint "${nameHint}")` : ''),
+  )
 }

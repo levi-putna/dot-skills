@@ -1,5 +1,5 @@
 ---
-name: checking-release-readiness
+name: development-check-release-readiness
 id: 7c6ec2da-59e5-4832-abf4-a8c477b47f84
 author: Levi Putna
 repo: https://github.com/levi-putna/dot-skills
@@ -66,13 +66,14 @@ not by re-reading the prose harder.
 - Leftover TODOs, placeholder text, or copy-pasted boilerplate that wasn't
   adapted to this project.
 
-## 5. Report the same way as `reviewing-code`
+## 5. Report the same way as `development-review-code`
 
 Most-severe first, one finding per contradiction: quote what the docs
 claim, cite the file/line of the code that actually decides it, and state
 concretely how they diverge. Don't silently edit docs or code. Recommend
-the fix and ask, unless this skill was invoked from `preparing-a-release`,
-which owns the confirm/apply loop for the whole release.
+the fix and ask, unless this skill was invoked from
+`development-prepare-release`, which owns the confirm/apply loop for the
+whole release.
 
 ## Don't
 

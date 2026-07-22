@@ -1,5 +1,5 @@
 ---
-name: creating-skills
+name: dotskills-create-skill
 id: e6d0cf52-9004-4575-b260-d5cd8874b8b1
 author: Levi Putna
 repo: https://github.com/levi-putna/dot-skills
@@ -28,12 +28,72 @@ skill folder inside them is a symlink (or, on filesystems without symlink
 support, a copy) back to `.skills/<skill-name>/`. Editing the linked copy
 directly means your edits vanish or drift from the source of truth.
 
+## Naming convention
+
+Every skill name follows:
+
+```
+<domain>-<action>-<topic>
+```
+
+Rules:
+
+- Lowercase only.
+- Hyphens (`-`) separate words. No spaces.
+- No slashes (`/`), colons (`:`), dots (`.`), or other special characters.
+- Concise, descriptive, stable. Once a skill is published, treat its name
+  as part of its public interface: other repos may `dot-skills add` it by
+  that exact name, so don't rename it lightly later.
+
+- **Domain** – the area the skill belongs to. Use whatever fits the
+  project (`document`, `ui`, `backend`, `testing`, `deployment`, `ai`,
+  ...). For skills about authoring or managing skills themselves (like
+  this one), use `dotskills`.
+- **Action** – the verb describing what the skill does (`create`,
+  `review`, `generate`, `refactor`, `test`, `deploy`, `import`, `run`,
+  ...).
+- **Topic** – the specific capability, as specific as helps disambiguate
+  it from sibling skills (`functional-spec`, `accessibility`,
+  `playwright`, `react`, `skill`, ...).
+
+Examples:
+
+```text
+document-create-functional-spec
+document-review-consistency
+ui-create-component
+ui-review-accessibility
+testing-run-playwright
+testing-ai-evaluation
+frontend-refactor-react
+backend-generate-api
+deployment-vercel-preview
+dotskills-create-skill
+dotskills-import-skill
+```
+
+Avoid:
+
+```text
+document/create/spec          ❌ slashes
+document:create:spec          ❌ colons
+Document Create Spec          ❌ spaces, capitals
+document.create.spec          ❌ dots
+createSpec                    ❌ no domain, camelCase
+generating-invoices           ❌ no domain/topic split
+```
+
+If a skill genuinely doesn't fit the shape cleanly (it captures reference
+knowledge rather than a single action), pick the closest reasonable
+`<domain>-<action>-<topic>` fit rather than abandoning the convention —
+choose the action that best matches how an agent would invoke it (e.g.
+`use`, `apply`, `reference`).
+
 ## Steps
 
-1. **Pick a name.** Use kebab-case, verb-first when it describes an action
-   (`generating-invoices`) or noun-first when it describes domain knowledge
-   (`design-system`). The name becomes the folder name and must match the
-   `name` field in frontmatter.
+1. **Pick a name** following the naming convention above. The name
+   becomes the folder name and must match the `name` field in
+   frontmatter.
 
 2. **Create the folder and SKILL.md:**
 
@@ -79,6 +139,11 @@ directly means your edits vanish or drift from the source of truth.
    changes how the skill behaves. When users pull a newer copy with
    `dot-skills update`, the version helps them understand what changed,
    so bumping it on edit matters more than picking the right part.
+   Prefer the CLI over hand-editing the field:
+
+   ```
+   npx dot-skills version <skill-name> patch   # or minor / major / 1.2.3
+   ```
 
    `author` is a plain name or handle. `repo` is a link back to the
    repository this skill's source lives in. That's not necessarily where a user
@@ -111,6 +176,32 @@ directly means your edits vanish or drift from the source of truth.
    be on `PATH`). Mark `required: false` for nice-to-haves. Never invent a
    dependency the skill doesn't actually need; every entry here becomes a
    real notice shown to a real person.
+
+   If this skill needs *another skill* installed alongside it, declare that
+   with `requires` (a separate field from the env/cli `dependencies`
+   above). Prefer the CLI, which verifies the target exists and writes the
+   correct `id` / `source` / `name`:
+
+   ```
+   # Sibling skill in the same .skills/ folder (source defaults to self)
+   npx dot-skills require <skill-name> <other-skill-name>
+
+   # Skill published in a different repo
+   npx dot-skills require <skill-name> owner/repo/other-skill-name
+   ```
+
+   The written entry looks like:
+
+   ```yaml
+   requires:
+     - id: <other-skill's UUID>
+       name: other-skill-name
+       # source omitted (or source: self) for same-repo siblings;
+       # source: owner/repo[#ref] for cross-repo dependencies
+   ```
+
+   The target skill must already have an `id`. `dot-skills add` will pull
+   required skills in automatically when someone installs this one.
 
 4. **Write the body.** Plain markdown instructions aimed at the agent that
    will read this skill, not at a human reader of documentation. Be

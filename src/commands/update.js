@@ -1,4 +1,4 @@
-import { rmSync, existsSync } from 'fs'
+import { rmSync, existsSync, readFileSync } from 'fs'
 import { join } from 'path'
 import * as clack from '@clack/prompts'
 import { fetchSkillFiles } from '../lib/github.js'
@@ -9,11 +9,15 @@ import {
   hashSkillFiles,
   formatDependencyNotice,
 } from '../lib/installer.js'
-import { parseSkillMd, getVersion } from '../lib/frontmatter.js'
+import { parseSkillMd, getVersion, getRequires } from '../lib/frontmatter.js'
 import { compareVersions } from '../lib/version.js'
 import { resolveScope } from '../lib/scope.js'
 import { recordSkill } from '../lib/lockfile.js'
 import { dim, green, yellow } from '../lib/format.js'
+import {
+  resolveDependencyTree,
+  formatRequiresInstallList,
+} from '../lib/deps.js'
 
 const REPO_SOURCE_RE = /^[^/\s]+\/[^/\s]+$/
 
@@ -21,7 +25,8 @@ const REPO_SOURCE_RE = /^[^/\s]+\/[^/\s]+$/
  * Check installed skills against their source repos and pull down newer
  * versions. Skills whose local copy has been edited are only overwritten
  * after the user confirms (or with --force); anything that can't be
- * checked is reported as skipped, with the reason.
+ * checked is reported as skipped, with the reason. After updates, also
+ * installs any newly declared `requires` that are not yet present locally.
  */
 export async function update(skillName, { global: isGlobal, force = false, interactive = true } = {}) {
   const cwd = process.cwd()
@@ -51,6 +56,8 @@ export async function update(skillName, { global: isGlobal, force = false, inter
   const updated = []
   const upToDate = []
   const skipped = []
+  // Skills whose requires we should repair after the update pass.
+  const repairCandidates = []
   const spinner = clack.spinner()
   let cancelled = false
 
@@ -74,6 +81,7 @@ export async function update(skillName, { global: isGlobal, force = false, inter
       if (!entry.contentHash) entry.contentHash = check.localHash
       if (!entry.version && check.localVersion) entry.version = check.localVersion
       upToDate.push({ name, version: check.localVersion })
+      repairCandidates.push({ name, entry, data: readLocalData(scope.skillsDir, name) })
       continue
     }
 
@@ -124,10 +132,135 @@ export async function update(skillName, { global: isGlobal, force = false, inter
 
     const notice = formatDependencyNotice(name, check.remoteData)
     if (notice) clack.note(notice, 'Setup required')
+    repairCandidates.push({ name, entry, data: check.remoteData })
+  }
+
+  // Install any requires that are declared but not yet present locally.
+  if (!cancelled) {
+    await repairMissingRequires({
+      repairCandidates,
+      scope,
+      lock,
+      force,
+      interactive,
+      spinner,
+    })
   }
 
   scope.writeLock(lock)
   printSummary({ updated, upToDate, skipped })
+}
+
+/**
+ * Resolve and install missing skill-to-skill dependencies for updated /
+ * up-to-date skills, with a single confirmation prompt.
+ */
+async function repairMissingRequires({
+  repairCandidates,
+  scope,
+  lock,
+  force,
+  interactive,
+  spinner,
+}) {
+  const roots = []
+  for (const candidate of repairCandidates) {
+    if (!candidate.data || !getRequires(candidate.data).length) continue
+    const source = candidate.entry.source || 'local'
+    let parentSource = { kind: 'local' }
+    if (REPO_SOURCE_RE.test(source)) {
+      const [owner, repo] = source.split('/')
+      parentSource = {
+        kind: 'remote',
+        owner,
+        repo,
+        ref: candidate.entry.branch || undefined,
+      }
+    }
+    roots.push({
+      skillName: candidate.name,
+      data: candidate.data,
+      parentSource,
+    })
+  }
+  if (!roots.length) return
+
+  spinner.start('Checking skill dependencies')
+  let toInstall = []
+  try {
+    ;({ toInstall } = await resolveDependencyTree(roots, { skillsDir: scope.skillsDir }))
+  } catch (err) {
+    spinner.stop('Dependency resolution failed', 1)
+    clack.log.warn(err.message)
+    return
+  }
+
+  const remoteDeps = toInstall.filter((item) => item.files)
+  if (!remoteDeps.length) {
+    spinner.stop('All skill dependencies already installed')
+    return
+  }
+  spinner.stop(
+    `Found ${remoteDeps.length} missing skill dependenc${remoteDeps.length === 1 ? 'y' : 'ies'}`,
+  )
+
+  const list = formatRequiresInstallList(remoteDeps)
+  if (list) clack.note(list, 'Missing dependencies')
+
+  const canPrompt = interactive && !force && Boolean(process.stdin.isTTY)
+  if (canPrompt) {
+    const answer = await clack.confirm({
+      message: `Install ${remoteDeps.length} missing dependenc${remoteDeps.length === 1 ? 'y' : 'ies'}?`,
+      initialValue: true,
+    })
+    if (clack.isCancel(answer) || !answer) {
+      clack.log.info('Skipped installing missing skill dependencies.')
+      return
+    }
+  }
+  // Otherwise (--force, --interactive=false, or no TTY): install automatically, matching `add`.
+
+  // `toInstall` is dependency-first (leaves before the skill that requires
+  // them), so a leaf's own requiring skill may not be in the lockfile yet
+  // by the time we get to it — resolve agentKeys by walking the requiredBy
+  // chain (through other pending installs) up to a skill the lockfile
+  // already knows about, rather than assuming `requiredBy` is always
+  // already recorded.
+  const toInstallByName = new Map(toInstall.map((item) => [item.skillName, item]))
+  const agentKeysByName = new Map()
+  const resolveAgentKeys = (name) => {
+    if (agentKeysByName.has(name)) return agentKeysByName.get(name)
+    agentKeysByName.set(name, []) // cycle guard while resolving
+    const existing = lock.skills[name]
+    const keys = existing ? existing.linkedAgents || [] : resolveAgentKeys(toInstallByName.get(name)?.requiredBy)
+    agentKeysByName.set(name, keys)
+    return keys
+  }
+
+  for (const item of remoteDeps) {
+    const agentKeys = resolveAgentKeys(item.requiredBy)
+    const targetDir = writeSkillFiles(scope.skillsDir, item.skillName, item.files)
+    for (const key of agentKeys) {
+      linkSkill(targetDir, scope.agentSkillsDir(key), item.skillName)
+    }
+    recordSkill(lock, item.skillName, {
+      source: item.lockSource,
+      branch: item.branch,
+      version: getVersion(item.data),
+      contentHash: hashSkillFiles(item.files),
+      linkedAgents: agentKeys,
+    })
+    agentKeysByName.set(item.skillName, agentKeys)
+    clack.log.success(`Installed dependency ${item.skillName}`)
+    const notice = formatDependencyNotice(item.skillName, item.data)
+    if (notice) clack.note(notice, 'Setup required')
+  }
+}
+
+function readLocalData(skillsDir, name) {
+  const skillMdPath = join(skillsDir, name, 'SKILL.md')
+  if (!existsSync(skillMdPath)) return null
+  return parseSkillMd(readFileSync(skillMdPath, 'utf8')).data
 }
 
 // Fetch the remote copy of one skill and compare it to the local install.

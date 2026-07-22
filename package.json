@@ -1,6 +1,6 @@
 {
   "name": "dot-skills",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Store agent skills once in .skills/, link them out to Claude Code, Cursor, GitHub Copilot, Windsurf, Codex CLI, and Gemini CLI.",
   "type": "module",
   "bin": {
@@ -15,7 +15,7 @@
     "node": ">=18.0.0"
   },
   "scripts": {
-    "test": "node --test src/lib/*.test.js"
+    "test": "node --test src/lib/*.test.js src/commands/*.test.js"
   },
   "dependencies": {
     "@clack/prompts": "^0.9.0",

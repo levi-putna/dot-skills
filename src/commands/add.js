@@ -6,7 +6,15 @@ import { getAgent } from '../lib/agents.js'
 import { resolveScope } from '../lib/scope.js'
 import { pickAgents } from '../lib/interactive.js'
 import { recordSkill } from '../lib/lockfile.js'
+import {
+  resolveDependencyTree,
+  formatRequiresInstallList,
+} from '../lib/deps.js'
 
+/**
+ * Install one or more skills from a GitHub repo's `.skills/` folder,
+ * resolving and installing any declared `requires` dependencies too.
+ */
 export async function add(spec, { global: isGlobal, agents: explicitAgents, all, skills: explicitSkills } = {}) {
   const cwd = process.cwd()
   clack.intro(`dot-skills add ${spec}`)
@@ -84,8 +92,8 @@ export async function add(spec, { global: isGlobal, agents: explicitAgents, all,
   })
   if (agentKeys === null) return
 
-  const lock = scope.readLock()
-
+  // Fetch every directly-requested skill first, then resolve their requires.
+  const roots = []
   for (const skillName of skillNames) {
     spinner.start(`Fetching ${skillName}`)
     let files, ref
@@ -105,21 +113,99 @@ export async function add(spec, { global: isGlobal, agents: explicitAgents, all,
       clack.log.warn(errors.join('\n'))
     }
 
-    const targetDir = writeSkillFiles(scope.skillsDir, skillName, files)
-
-    for (const key of agentKeys) {
-      linkSkill(targetDir, scope.agentSkillsDir(key), skillName)
-    }
-
-    recordSkill(lock, skillName, {
-      source: `${parsed.owner}/${parsed.repo}`,
+    roots.push({
+      skillName,
+      data,
+      files,
       branch: ref,
-      version: getVersion(data),
-      contentHash: hashSkillFiles(files),
+      parentSource: {
+        kind: 'remote',
+        owner: parsed.owner,
+        repo: parsed.repo,
+        ref,
+      },
+    })
+  }
+
+  if (!roots.length) {
+    clack.outro('Nothing to install.')
+    process.exitCode = 1
+    return
+  }
+
+  let toInstall = []
+  spinner.start('Resolving skill dependencies')
+  try {
+    ;({ toInstall } = await resolveDependencyTree(roots, { skillsDir: scope.skillsDir }))
+  } catch (err) {
+    spinner.stop('Dependency resolution failed', 1)
+    clack.outro(err.message)
+    process.exitCode = 1
+    return
+  }
+  spinner.stop(
+    toInstall.length
+      ? `Resolved ${toInstall.length} additional skill dependenc${toInstall.length === 1 ? 'y' : 'ies'}`
+      : 'No additional skill dependencies',
+  )
+
+  // Only remote deps need installing (self-local ones are already on disk).
+  const remoteDeps = toInstall.filter((item) => item.files)
+
+  if (remoteDeps.length) {
+    const list = formatRequiresInstallList(remoteDeps)
+    if (list) clack.note(list, 'Dependencies')
+
+    if (process.stdin.isTTY) {
+      const answer = await clack.confirm({
+        message: `Install ${remoteDeps.length} dependenc${remoteDeps.length === 1 ? 'y' : 'ies'} as well?`,
+        initialValue: true,
+      })
+      if (clack.isCancel(answer)) {
+        clack.cancel('Cancelled.')
+        return
+      }
+      if (!answer) {
+        clack.outro('Cancelled — nothing installed.')
+        return
+      }
+    }
+  }
+
+  const lock = scope.readLock()
+
+  // Install dependencies first (dependency-first order from the resolver),
+  // then the directly requested roots.
+  for (const item of remoteDeps) {
+    const targetDir = writeSkillFiles(scope.skillsDir, item.skillName, item.files)
+    for (const key of agentKeys) {
+      linkSkill(targetDir, scope.agentSkillsDir(key), item.skillName)
+    }
+    recordSkill(lock, item.skillName, {
+      source: item.lockSource,
+      branch: item.branch,
+      version: getVersion(item.data),
+      contentHash: hashSkillFiles(item.files),
       linkedAgents: agentKeys,
     })
+    clack.log.success(`Installed dependency ${item.skillName}`)
+    const notice = formatDependencyNotice(item.skillName, item.data)
+    if (notice) clack.note(notice, 'Setup required')
+  }
 
-    const notice = formatDependencyNotice(skillName, data)
+  for (const root of roots) {
+    const targetDir = writeSkillFiles(scope.skillsDir, root.skillName, root.files)
+    for (const key of agentKeys) {
+      linkSkill(targetDir, scope.agentSkillsDir(key), root.skillName)
+    }
+    recordSkill(lock, root.skillName, {
+      source: `${parsed.owner}/${parsed.repo}`,
+      branch: root.branch,
+      version: getVersion(root.data),
+      contentHash: hashSkillFiles(root.files),
+      linkedAgents: agentKeys,
+    })
+    const notice = formatDependencyNotice(root.skillName, root.data)
     if (notice) clack.note(notice, 'Setup required')
   }
 

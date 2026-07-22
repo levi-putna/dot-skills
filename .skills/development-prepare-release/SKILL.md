@@ -1,16 +1,16 @@
 ---
-name: preparing-a-release
+name: development-prepare-release
 id: 188580c9-304e-4bbf-8bf5-764535982d40
 author: Levi Putna
 repo: https://github.com/levi-putna/dot-skills
 description: >-
   Run a full pre-release check before cutting a new version: invokes
-  reviewing-code and checking-release-readiness, determines the right
-  semver bump from the size and nature of changes since the last
-  published version, updates CHANGELOG.md, verifies the git repo is
-  committed and pushed, and hands back the exact npm publish command. Use
-  when asked to cut a release, prepare a release, bump the version, or
-  "get this ready to publish."
+  development-review-code and development-check-release-readiness,
+  determines the right semver bump from the size and nature of changes
+  since the last published version, updates CHANGELOG.md, verifies the
+  git repo is committed and pushed, and hands back the exact npm publish
+  command. Use when asked to cut a release, prepare a release, bump the
+  version, or "get this ready to publish."
 dependencies:
   - type: cli
     name: npm
@@ -36,10 +36,10 @@ one step that actually needs a human: `npm publish`.
 
 ## 1. Run the two check skills first
 
-Run `reviewing-code` against everything changed since the last published
-version (not just uncommitted changes; diff against the last release
-tag, or against the version currently on npm if there's no tag). Run
-`checking-release-readiness` the same way.
+Run `development-review-code` against everything changed since the last
+published version (not just uncommitted changes; diff against the last
+release tag, or against the version currently on npm if there's no tag).
+Run `development-check-release-readiness` the same way.
 
 **Do not proceed past this point if either skill has findings the user
 hasn't dispositioned yet.** A release prepared over unresolved findings is

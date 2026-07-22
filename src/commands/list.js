@@ -54,7 +54,7 @@ async function listRemote(spec) {
     }),
   )
 
-  // The two starter skills (creating-skills, importing-skills) get copied
+  // The two starter skills (dotskills-create-skill, dotskills-import-skill) get copied
   // into every project's own .skills/ by `init` — listing them again for
   // every repo that happens to carry a copy would just be noise. Matched
   // by id, not name, so this still holds even if a copy gets renamed.

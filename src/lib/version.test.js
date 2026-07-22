@@ -1,6 +1,6 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { parseVersion, isValidVersion, compareVersions } from './version.js'
+import { parseVersion, isValidVersion, compareVersions, bumpVersion, formatVersion } from './version.js'
 
 test('parseVersion handles full, partial, and v-prefixed versions', () => {
   assert.deepEqual(parseVersion('1.2.3'), { major: 1, minor: 2, patch: 3, prerelease: [] })
@@ -40,4 +40,52 @@ test('compareVersions puts prereleases before their release', () => {
 
 test('compareVersions throws on unparseable input', () => {
   assert.throws(() => compareVersions('1.0.0', 'nope'))
+})
+
+test('bumpVersion bumps major/minor/patch and clears lower parts', () => {
+  assert.deepEqual(bumpVersion('1.2.3', 'patch'), {
+    version: '1.2.4',
+    from: '1.2.3',
+    initialized: false,
+  })
+  assert.deepEqual(bumpVersion('1.2.3', 'minor'), {
+    version: '1.3.0',
+    from: '1.2.3',
+    initialized: false,
+  })
+  assert.deepEqual(bumpVersion('1.2.3', 'major'), {
+    version: '2.0.0',
+    from: '1.2.3',
+    initialized: false,
+  })
+})
+
+test('bumpVersion initializes to 1.0.0 when no current version', () => {
+  assert.deepEqual(bumpVersion(undefined, 'minor'), {
+    version: '1.0.0',
+    from: null,
+    initialized: true,
+  })
+})
+
+test('bumpVersion accepts an explicit semver value', () => {
+  assert.deepEqual(bumpVersion('1.0.0', '2.3.4'), {
+    version: '2.3.4',
+    from: '1.0.0',
+    initialized: false,
+  })
+  assert.deepEqual(bumpVersion(undefined, 'v1.2.3'), {
+    version: '1.2.3',
+    from: null,
+    initialized: true,
+  })
+})
+
+test('bumpVersion rejects garbage kinds', () => {
+  assert.throws(() => bumpVersion('1.0.0', 'latest'))
+  assert.throws(() => bumpVersion('1.0.0', ''))
+})
+
+test('formatVersion joins major.minor.patch', () => {
+  assert.equal(formatVersion({ major: 1, minor: 2, patch: 3 }), '1.2.3')
 })
