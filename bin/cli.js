@@ -9,6 +9,7 @@ import { link } from '../src/commands/link.js'
 import { remove } from '../src/commands/remove.js'
 import { doctor } from '../src/commands/doctor.js'
 import { update } from '../src/commands/update.js'
+import { push } from '../src/commands/push.js'
 import { version } from '../src/commands/version.js'
 import { requireSkill } from '../src/commands/require.js'
 
@@ -20,7 +21,10 @@ Usage:
                                             Install skill(s) from a repo's .skills/ folder
   dot-skills list [owner/repo] [--global]  List skills in a repo (or, with no args, in ./.skills/)
   dot-skills installed [--global]          Show installed skills, their agents, and dependency status
-  dot-skills update [skill] [--global]     Check installed skills against their source repos and pull newer versions
+  dot-skills update [skill|owner/repo/skill] [--global]
+                                            Check installed skills against their source repos and pull newer versions
+  dot-skills push <skill|owner/repo/skill> [--global]
+                                            Open a PR on the skill's source repo with your local edits
   dot-skills link [skill...] [--global]    (Re)link skills into agent directories
   dot-skills remove <skill> [--global]     Remove a skill and unlink it everywhere
   dot-skills doctor [--global] [--links] [--fix]
@@ -35,9 +39,11 @@ Flags:
   --agents=a,b          Skip the interactive agent picker; link into exactly these agents
   --all                 Skip the interactive agent picker; link into every supported agent
   --skills=a,b          (add) Skip the interactive skill picker; install exactly these skills
-  --force               (update/remove) Overwrite or remove without confirming (default: false)
-  --interactive=false   (update/remove) Never prompt on conflicts; skills with local changes (update) or
-                         still-required dependents (remove) are skipped instead (default: true)
+  --force               (update/remove/push) Skip confirmations (default: false)
+  --interactive=false   (update/remove/push) Never prompt; for update/remove, conflicting skills are
+                         skipped instead; for push, the PR is opened without confirming (default: true)
+  --title=...           (push) Pull request title (default: derived from the skill name / version)
+  --body=...            (push) Pull request body (default: a summary of file changes)
   --links               (doctor) Also audit symlinks between .skills/ and every agent's skills directory
   --fix                 (doctor) With --links, repair any symlink issues found instead of just reporting them
 
@@ -88,6 +94,15 @@ async function main() {
       break
     case 'update':
       await update(positional[0], { global: isGlobal, force, interactive })
+      break
+    case 'push':
+      await push(positional[0], {
+        global: isGlobal,
+        force,
+        interactive,
+        title: typeof flags.title === 'string' ? flags.title : undefined,
+        body: typeof flags.body === 'string' ? flags.body : undefined,
+      })
       break
     case 'link':
       await link(positional, { global: isGlobal, agents, all })

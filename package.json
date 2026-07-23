@@ -1,6 +1,6 @@
 {
   "name": "dot-skills",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Store agent skills once in .skills/, link them out to Claude Code, Cursor, GitHub Copilot, Windsurf, Codex CLI, and Gemini CLI.",
   "type": "module",
   "bin": {

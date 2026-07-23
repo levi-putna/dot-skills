@@ -2,6 +2,7 @@ import { existsSync, readdirSync, readFileSync } from 'fs'
 import { join } from 'path'
 import { parseSkillMd, getId, getRequires } from './frontmatter.js'
 import { parseRepoSpec, findSkillById, fetchSkillFiles } from './github.js'
+import { wrap, NOTE_BOX_OVERHEAD } from './format.js'
 
 /**
  * Scan an installed skills directory and return maps of id->name and name->id.
@@ -325,6 +326,26 @@ export function checkRequires(data, { skillsDir } = {}) {
 }
 
 /**
+ * Build an `add`-compatible install spec from a requires entry.
+ * Stored sources are `owner/repo` or `owner/repo#ref` (no skill segment);
+ * insert the skill name before any `#ref`. Hand-edited sources that already
+ * include a skill path are returned unchanged so we don't double the name.
+ */
+export function formatRequiresAddSpec(req) {
+  const skill = req.name || req.skillName || req.id
+  if (!skill) return null
+  if (!req.source || req.source === 'self') {
+    return `<owner/repo>/${skill}`
+  }
+
+  const raw = String(req.source)
+  const [repoPart, ref] = raw.split('#')
+  const segments = repoPart.split('/').filter(Boolean)
+  if (segments.length >= 3) return raw
+  return `${repoPart}/${skill}${ref ? `#${ref}` : ''}`
+}
+
+/**
  * Format a human-readable list of skills about to be installed as dependencies.
  */
 export function formatRequiresInstallList(toInstall) {
@@ -332,7 +353,9 @@ export function formatRequiresInstallList(toInstall) {
   const lines = ['Also installing:']
   for (const item of toInstall) {
     const via = item.requiredBy ? `, required by ${item.requiredBy}` : ''
-    lines.push(`  ${item.skillName}  (${item.sourceLabel}${via})`)
+    lines.push(
+      wrap(`${item.skillName}  (${item.sourceLabel}${via})`, { indent: 2, boxOverhead: NOTE_BOX_OVERHEAD }),
+    )
   }
   return lines.join('\n')
 }

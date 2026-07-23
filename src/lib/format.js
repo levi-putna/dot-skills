@@ -10,17 +10,27 @@ function style(open, close) {
 
 export const bold = style(1, 22)
 export const dim = style(2, 22)
+export const underline = style(4, 24)
 export const blue = style(94, 39) // bright blue — plain blue (34) reads too dark on most default terminal themes
 export const cyan = style(36, 39)
 export const green = style(32, 39)
 export const yellow = style(33, 39)
 export const red = style(31, 39)
 
+// clack's `note()` draws a border around whatever text it's given, sized to
+// the longest line: 1 char border + 2 spaces of padding on each side. Text
+// headed into a note has to wrap narrower than the terminal by this much,
+// or the box itself ends up wider than the terminal and wraps ugly.
+export const NOTE_BOX_OVERHEAD = 6
+
 // Word-wrap to a comfortable reading width (capped even on very wide
-// terminals), with every wrapped line indented so it nests under the
-// heading above it instead of running flush-left.
-export function wrap(text, { indent = 4, maxWidth = 88 } = {}) {
-  const columns = Math.min(process.stdout.columns || 80, maxWidth)
+// terminals, and floored so degenerate/very narrow terminals still get
+// something readable), with every wrapped line indented so it nests under
+// the heading above it instead of running flush-left. `boxOverhead` shaves
+// extra columns off for content that will be re-wrapped in a bordered box
+// (see NOTE_BOX_OVERHEAD above).
+export function wrap(text, { indent = 4, maxWidth = 88, boxOverhead = 0 } = {}) {
+  const columns = Math.min(process.stdout.columns || 80, maxWidth) - boxOverhead
   const width = Math.max(columns - indent, 20)
   const pad = ' '.repeat(indent)
 

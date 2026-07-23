@@ -66,6 +66,26 @@ export function removeSkillRecord(lock, skillName) {
   return lock
 }
 
+/**
+ * Resolve a user-supplied skill reference to a lockfile key.
+ * Accepts the installed skill name, or an add-style
+ * `owner/repo/skill-name[#ref]` path (matched by skill-name segment).
+ * Returns the skill name, or null if nothing installed matches.
+ */
+export function resolveInstalledSkillName(lock, input) {
+  if (!input) return null
+  if (lock.skills[input]) return input
+
+  // add-style "owner/repo/skill[#ref]" — strip the repo prefix / optional ref
+  const withoutRef = String(input).split('#')[0]
+  const segments = withoutRef.split('/').filter(Boolean)
+  if (segments.length >= 3) {
+    const skillName = segments.slice(2).join('/')
+    if (lock.skills[skillName]) return skillName
+  }
+  return null
+}
+
 // Node's test runner freezes Date in some sandboxes; keep this isolated so it's easy to stub in tests.
 function nowIso() {
   return new Date().toISOString()

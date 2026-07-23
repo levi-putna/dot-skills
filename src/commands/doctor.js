@@ -3,11 +3,11 @@ import { join } from 'path'
 import { resolveScope } from '../lib/scope.js'
 import { parseSkillMd } from '../lib/frontmatter.js'
 import { checkDependencies } from '../lib/installer.js'
-import { checkRequires } from '../lib/deps.js'
+import { checkRequires, formatRequiresAddSpec } from '../lib/deps.js'
 import { auditLinks, fixLinks } from '../lib/links.js'
 import { detectAgents, detectGlobalAgents, getAgent } from '../lib/agents.js'
 import { recordSkill } from '../lib/lockfile.js'
-import { bold, blue, dim, green, red, yellow } from '../lib/format.js'
+import { bold, blue, dim, green, red, yellow, wrap } from '../lib/format.js'
 
 /**
  * Check every installed skill's declared env/cli dependencies and
@@ -45,10 +45,11 @@ export function doctor({ global: isGlobal, links, fix } = {}) {
         const required = dep.required !== false
         if (required) missingRequired++
         const tag = required ? red('required') : yellow('optional')
-        console.log(
-          `${bold(blue(name))}: [${tag}] ${dep.type} "${dep.name}" is not set` +
-            (dep.instructions ? ` -> ${dep.instructions}` : ''),
-        )
+        console.log(`${bold(blue(name))}: [${tag}] ${dep.type} "${dep.name}" is not set`)
+        // Author-supplied instructions can run long (a full sentence, a
+        // URL) — wrap and indent so they read as a continuation of the
+        // line above instead of an unrelated line flush against the margin.
+        if (dep.instructions) console.log(wrap(`-> ${dep.instructions}`, { indent: 4 }))
       }
     }
 
@@ -57,9 +58,14 @@ export function doctor({ global: isGlobal, links, fix } = {}) {
         missingRequires++
         const label = req.skillName || req.name || req.id
         const sourceLabel = req.source === 'self' ? 'self' : req.source
+        const installSpec = formatRequiresAddSpec(req)
+        console.log(`${bold(blue(name))}: [${red('required')}] skill "${label}" (${sourceLabel}) is not installed`)
         console.log(
-          `${bold(blue(name))}: [${red('required')}] skill "${label}" (${sourceLabel}) is not installed` +
-            ` -> run \`dot-skills update ${name}\` or \`dot-skills add ${sourceLabel === 'self' ? '<owner/repo>/' + (req.name || label) : sourceLabel + '/' + (req.name || label)}\``,
+          wrap(
+            `-> run \`dot-skills update ${name}\`` +
+              (installSpec ? ` or \`dot-skills add ${installSpec}\`` : ''),
+            { indent: 4 },
+          ),
         )
       }
     }

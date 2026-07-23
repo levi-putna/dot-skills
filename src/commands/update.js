@@ -12,7 +12,7 @@ import {
 import { parseSkillMd, getVersion, getRequires } from '../lib/frontmatter.js'
 import { compareVersions } from '../lib/version.js'
 import { resolveScope } from '../lib/scope.js'
-import { recordSkill } from '../lib/lockfile.js'
+import { recordSkill, resolveInstalledSkillName } from '../lib/lockfile.js'
 import { dim, green, yellow } from '../lib/format.js'
 import {
   resolveDependencyTree,
@@ -38,12 +38,13 @@ export async function update(skillName, { global: isGlobal, force = false, inter
 
   let targets
   if (skillName) {
-    if (!lock.skills[skillName]) {
+    const resolved = resolveInstalledSkillName(lock, skillName)
+    if (!resolved) {
       clack.outro(`"${skillName}" is not installed${isGlobal ? ' globally' : ' in this project'}.`)
       process.exitCode = 1
       return
     }
-    targets = [skillName]
+    targets = [resolved]
   } else {
     targets = Object.keys(lock.skills).sort()
   }

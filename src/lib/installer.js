@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync, symlinkSync, existsSync, rmSync, lstatSync, c
 import { join, dirname } from 'path'
 import { createHash } from 'crypto'
 import { getDependencies } from './frontmatter.js'
+import { wrap, NOTE_BOX_OVERHEAD } from './format.js'
 
 // Write a skill's files into <skillsDir>/<skillName>/...
 export function writeSkillFiles(skillsDir, skillName, files) {
@@ -107,8 +108,12 @@ export function formatDependencyNotice(skillName, data) {
     const kind = dep.type === 'cli' ? 'CLI tool' : 'environment variable'
     lines.push('')
     lines.push(`  [${req}] ${kind}: ${dep.name}`)
-    if (dep.description) lines.push(`    ${dep.description}`)
-    if (dep.instructions) lines.push(`    -> ${dep.instructions}`)
+    // Author-supplied free text (often a full sentence or a URL) — wrap it
+    // to the terminal width so this note's box doesn't blow past it.
+    if (dep.description) lines.push(wrap(dep.description, { indent: 4, boxOverhead: NOTE_BOX_OVERHEAD }))
+    if (dep.instructions) {
+      lines.push(wrap(`-> ${dep.instructions}`, { indent: 4, boxOverhead: NOTE_BOX_OVERHEAD }))
+    }
   }
   return lines.join('\n')
 }

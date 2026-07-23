@@ -3,7 +3,14 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, rmSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { readLockfile, writeLockfile, recordSkill, removeSkillRecord, getProjectLockfilePath } from './lockfile.js'
+import {
+  readLockfile,
+  writeLockfile,
+  recordSkill,
+  removeSkillRecord,
+  resolveInstalledSkillName,
+  getProjectLockfilePath,
+} from './lockfile.js'
 
 function withTmpDir(fn) {
   const dir = mkdtempSync(join(tmpdir(), 'dot-skills-lock-test-'))
@@ -74,4 +81,24 @@ test('removeSkillRecord deletes the entry', () => {
   const lock = { skills: { foo: {} } }
   removeSkillRecord(lock, 'foo')
   assert.deepEqual(lock.skills, {})
+})
+
+test('resolveInstalledSkillName accepts skill name or owner/repo/skill[#ref]', () => {
+  const lock = {
+    skills: {
+      'video-generate-explainer': { source: 'levi-putna/skills' },
+    },
+  }
+  assert.equal(resolveInstalledSkillName(lock, 'video-generate-explainer'), 'video-generate-explainer')
+  assert.equal(
+    resolveInstalledSkillName(lock, 'levi-putna/skills/video-generate-explainer'),
+    'video-generate-explainer',
+  )
+  assert.equal(
+    resolveInstalledSkillName(lock, 'levi-putna/skills/video-generate-explainer#main'),
+    'video-generate-explainer',
+  )
+  assert.equal(resolveInstalledSkillName(lock, 'levi-putna/skills/missing'), null)
+  assert.equal(resolveInstalledSkillName(lock, 'levi-putna/skills'), null)
+  assert.equal(resolveInstalledSkillName(lock, ''), null)
 })

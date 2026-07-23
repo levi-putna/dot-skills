@@ -11,6 +11,7 @@ import {
   findDependents,
   checkRequires,
   formatRequiresInstallList,
+  formatRequiresAddSpec,
 } from './deps.js'
 import { stringifySkillMd } from './frontmatter.js'
 
@@ -404,4 +405,28 @@ test('formatRequiresInstallList renders a readable summary', () => {
   assert.match(text, /helper/)
   assert.match(text, /required by root/)
   assert.equal(formatRequiresInstallList([]), null)
+})
+
+test('formatRequiresAddSpec inserts skill name before #ref', () => {
+  assert.equal(
+    formatRequiresAddSpec({ source: 'self', name: 'helper' }),
+    '<owner/repo>/helper',
+  )
+  assert.equal(
+    formatRequiresAddSpec({ source: 'acme/skills', name: 'helper' }),
+    'acme/skills/helper',
+  )
+  assert.equal(
+    formatRequiresAddSpec({ source: 'acme/skills#v2', name: 'helper' }),
+    'acme/skills/helper#v2',
+  )
+  // Hand-edited source that already includes the skill path — leave alone
+  assert.equal(
+    formatRequiresAddSpec({ source: 'acme/skills/helper', name: 'helper' }),
+    'acme/skills/helper',
+  )
+  assert.equal(
+    formatRequiresAddSpec({ source: 'acme/skills/helper#v2', name: 'helper' }),
+    'acme/skills/helper#v2',
+  )
 })

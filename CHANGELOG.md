@@ -4,6 +4,41 @@ All notable changes to this project are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project
 uses [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-07-23
+
+### Added
+
+- `dot-skills push <skill>`: open a pull request on a skill's source repo
+  with your local edits. Uses the GitHub API (`GITHUB_TOKEN` / `GH_TOKEN`) —
+  no `git` or `gh` CLI required, and the consuming project's own git history
+  is untouched. Forks automatically when the token can't write to the source
+  repo. Prints the PR URL and, in an interactive terminal, offers **space**
+  to open it in the browser (enter to skip). Supports `--title`, `--body`,
+  `--force`, and `--interactive=false`.
+
+## [0.3.1] - 2026-07-22
+
+### Fixed
+
+- `update` rejected add-style `owner/repo/skill` arguments even when the
+  skill was installed — it only accepted the bare skill name from the
+  lockfile. It now resolves either form.
+- `doctor`'s missing-`requires` hint built an invalid `dot-skills add` spec
+  when the dependency's `source` included `#ref` (e.g. suggested
+  `acme/skills#v2/helper` instead of `acme/skills/helper#v2`).
+- README claimed every command accepts `--global` (false for `init`), that
+  `init`/`link` print dependency setup notices (only `add`/`update` do),
+  that `doctor` reports CLI deps (it doesn't — `installed` shows them as
+  `[unknown]`), that non-interactive flags are "used automatically" without
+  a TTY (agents fall back to detected; `add` still needs an explicit skill),
+  and omitted the `unexpected` symlink status from the `--links` audit list.
+
+### Changed
+
+- Long dependency instructions and requires-install notes now word-wrap to
+  the terminal width (including inside clack note boxes) instead of blowing
+  past the margin.
+
 ## [0.3.0] - 2026-07-22
 
 ### Added

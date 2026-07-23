@@ -69,19 +69,22 @@ below.
 | `dot-skills add <owner/repo>[/skill][#ref]` | Install one or more skills from a repo's `.skills/` folder (and any skills they `require`) |
 | `dot-skills list [owner/repo]` | List skills + descriptions in a repo, or (no args) in the local `.skills/` |
 | `dot-skills installed` | Show installed skills: source, version, linked agents, dependency status |
-| `dot-skills update [skill]` | Check installed skills against their source repos and pull down newer versions (see [Updating skills](#updating-skills)) |
+| `dot-skills update [skill\|owner/repo/skill]` | Check installed skills against their source repos and pull down newer versions (see [Updating skills](#updating-skills)) |
+| `dot-skills push <skill\|owner/repo/skill>` | Open a pull request on the skill's source repo with your local edits (see [Pushing changes upstream](#pushing-changes-upstream)) |
 | `dot-skills link [skill...]` | (Re)create symlinks for skills already in `.skills/`, e.g. after adding a new agent to the project |
 | `dot-skills remove <skill>` | Delete a skill from `.skills/` and unlink it from every agent it was linked into |
 | `dot-skills doctor [--links] [--fix]` | Check every installed skill's declared dependencies against the current environment (and, with `--links`, symlink health — see [Checking symlinks](#checking-symlinks)) |
 | `dot-skills version <skill> <major\|minor\|patch\|x.y.z>` | Bump or set a skill's `version` frontmatter |
 | `dot-skills require <skill> <dep>` | Add a skill-to-skill dependency (`local-name` or `owner/repo/skill[#ref]`) |
 
-Every command accepts `--global` to operate on `~/.dot-skills/skills/` and
-each agent's global directory instead of the current project.
+Every command except `init` accepts `--global` to operate on
+`~/.dot-skills/skills/` and each agent's global directory instead of the
+current project.
 
-Non-interactive flags (for scripts/CI, and used automatically when stdin
-isn't a TTY): `--agents=claude,cursor`, `--all`, and (for `add`)
-`--skills=a,b`.
+Non-interactive flags for scripts/CI: `--agents=claude,cursor`, `--all`,
+and (for `add`) `--skills=a,b`. Without a TTY, agent pickers fall back to
+detected agents (not `--all`), and `add` requires an explicit skill path
+or `--skills` rather than prompting.
 
 `list` and `installed` word-wrap descriptions to the terminal width
 (capped at a readable ~88 columns); all commands color-highlight names and
@@ -98,8 +101,9 @@ installed (project-local or global) with `(already installed)`, matched by
 # Check every installed skill against the repo it was installed from
 npx dot-skills update
 
-# Update just one skill
+# Update just one skill (by name, or the same owner/repo/skill form used with add)
 npx dot-skills update development-review-code
+npx dot-skills update acme/skills/development-review-code
 ```
 
 `update` re-fetches each skill from the `owner/repo` (and branch) recorded
@@ -128,6 +132,44 @@ shows the change (`1.0.0 -> 1.1.0`) and skips downgrades (upstream version
 older than yours). Skills without a `version` are still updatable. Change
 detection is content-based, so versions are informative rather than required.
 
+## Pushing changes upstream
+
+Skills live as ordinary files under `.skills/` in whatever project you
+installed them into — that project's own git history is unrelated. When you
+edit a skill locally and want those edits back on the repo you installed
+from, open a pull request with:
+
+```sh
+# Requires GITHUB_TOKEN or GH_TOKEN (Contents + Pull requests write, or
+# permission to fork). If you use the GitHub CLI:
+#   export GITHUB_TOKEN=$(gh auth token)
+npx dot-skills push development-review-code
+npx dot-skills push acme/skills/development-review-code
+```
+
+`push` compares your local copy to the `owner/repo` (and branch) recorded
+in the lockfile, shows the file-level diff, and — after you confirm —
+creates a branch and pull request via the GitHub API. On success it prints
+the PR URL; in an interactive terminal you can press **space** to open it
+in your browser, or **enter** to skip. It does **not** need `git` or the
+`gh` CLI installed, and it never commits into the consuming project.
+
+If your token can't write to the source repo, `push` forks it (or reuses
+an existing fork), pushes the branch there, and opens the PR upstream.
+
+Useful flags:
+
+- `--title=...` / `--body=...`: override the PR title and body
+- `--force`: skip confirmation and the space-to-open prompt
+- `--interactive=false`: never prompt (also the behaviour when stdin isn't
+  a TTY); the PR is opened without asking, and the space-to-open offer is
+  skipped
+
+Skills created locally (`source: local`), bundled starter skills, or
+skills whose lockfile entry isn't a usable `owner/repo` can't be pushed —
+there's nowhere to open the PR. If local and upstream already match,
+`push` exits with nothing to do.
+
 ## Checking symlinks
 
 ```sh
@@ -150,6 +192,7 @@ it reports one of:
 - **broken** — a symlink whose target no longer exists
 - **wrong-target** — a symlink pointing somewhere other than the canonical `.skills/<name>`
 - **stale-copy** — a fallback copy (filesystems without symlink support) whose contents no longer match the canonical copy
+- **unexpected** — something other than a symlink or recognised fallback copy is in the way
 - **orphan** — a leftover entry in an agent's skills dir with no matching folder left in `.skills/`
 
 Without `--fix` it's read-only and exits non-zero if it finds anything.
@@ -227,10 +270,11 @@ even if the raw `SKILL.md` gets copied around by hand.
 `dependencies` is optional. Each entry is `type: env` (an environment
 variable) or `type: cli` (a command that must be on `PATH`), with
 `required` (default `true`), a human-readable `description`, and
-`instructions` for how to satisfy it. `dot-skills add`/`init`/`link` print
-these as a setup notice right after installing, and `dot-skills doctor`
-re-checks `env` dependencies against the current shell at any time (`cli`
-dependencies are reported but can't be auto-verified).
+`instructions` for how to satisfy it. `dot-skills add` and `dot-skills update`
+print these as a setup notice right after installing or updating. `dot-skills
+doctor` re-checks `env` dependencies against the current shell and fails when
+required ones are missing; `cli` dependencies can't be auto-verified (they
+show as `[unknown]` on `installed`, and `doctor` doesn't fail on them).
 
 ## Skill-to-skill dependencies (`requires`)
 
