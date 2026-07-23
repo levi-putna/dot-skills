@@ -34,7 +34,8 @@ without developer mode), it falls back to copying and re-copies on
 A `.skills/` folder is also how `dot-skills` recognizes a *source* of
 skills: any public GitHub repo with a `.skills/<name>/SKILL.md` in it can
 be pulled from with `dot-skills add owner/repo`, including this repo
-itself.
+itself. Local edits can be sent back upstream as a pull request with
+`dot-skills push` (see [Pushing changes upstream](#pushing-changes-upstream)).
 
 ## Quick start
 
@@ -53,6 +54,10 @@ npx dot-skills installed
 
 # Check declared dependencies (env vars / CLI tools) for everything installed
 npx dot-skills doctor
+
+# After editing an installed skill locally, open a PR on its source repo
+# (needs GITHUB_TOKEN or GH_TOKEN — see Pushing changes upstream)
+npx dot-skills push dotskills-create-skill
 ```
 
 The first time `dot-skills` runs on a machine (any command, not just
@@ -84,7 +89,9 @@ current project.
 Non-interactive flags for scripts/CI: `--agents=claude,cursor`, `--all`,
 and (for `add`) `--skills=a,b`. Without a TTY, agent pickers fall back to
 detected agents (not `--all`), and `add` requires an explicit skill path
-or `--skills` rather than prompting.
+or `--skills` rather than prompting. For `push`, set `GITHUB_TOKEN` or
+`GH_TOKEN`, and optionally pass `--title`, `--body`, `--force`, or
+`--interactive=false` (see [Pushing changes upstream](#pushing-changes-upstream)).
 
 `list` and `installed` word-wrap descriptions to the terminal width
 (capped at a readable ~88 columns); all commands color-highlight names and
@@ -145,6 +152,12 @@ from, open a pull request with:
 #   export GITHUB_TOKEN=$(gh auth token)
 npx dot-skills push development-review-code
 npx dot-skills push acme/skills/development-review-code
+
+# Optional: override the PR title/body, or skip prompts
+npx dot-skills push development-review-code \
+  --title="Clarify review checklist" \
+  --body="Tightens the security section based on project use."
+npx dot-skills push development-review-code --force
 ```
 
 `push` compares your local copy to the `owner/repo` (and branch) recorded
@@ -159,6 +172,8 @@ an existing fork), pushes the branch there, and opens the PR upstream.
 
 Useful flags:
 
+- `--global`: push a skill from `~/.dot-skills/skills/` instead of the
+  current project
 - `--title=...` / `--body=...`: override the PR title and body
 - `--force`: skip confirmation and the space-to-open prompt
 - `--interactive=false`: never prompt (also the behaviour when stdin isn't
